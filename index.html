@@ -1,0 +1,543 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Exchange Sector Monitor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a market-desk ledger — status strip of trading sessions on top, then a two-pane desk: news tape (left) and coverage register (right); stacks to one column on phones. */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#14202b; --muted:#5b6b78; --line:#d5dce3;
+  --accent:#0d5c7a; --accent-soft:#dcebf1;
+  --high:#b3261e; --high-soft:#f8e2e0; --med:#9a6300; --med-soft:#f6ecd8; --low:#4d6170; --low-soft:#e7ecf0;
+  --open:#1f7a4a;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f161c; --surface:#16212a; --ink:#e3eaf0; --muted:#93a4b2; --line:#26343f;
+  --accent:#5fb4d4; --accent-soft:#18323e;
+  --high:#f0857c; --high-soft:#3a1d1b; --med:#e2b25a; --med-soft:#352a14; --low:#a7b6c2; --low-soft:#1f2b34;
+  --open:#5cc98c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#16212a; --ink:#e3eaf0; --muted:#93a4b2; --line:#26343f;
+  --accent:#5fb4d4; --accent-soft:#18323e;
+  --high:#f0857c; --high-soft:#3a1d1b; --med:#e2b25a; --med-soft:#352a14; --low:#a7b6c2; --low-soft:#1f2b34;
+  --open:#5cc98c; color-scheme:dark}
+/* revenue-pool palette */
+:root{--p-tx:#0d5c7a;--p-cu:#4f7d33;--p-ni:#c0622a;--p-li:#7a5c99;--p-da:#b8912a;--p-te:#66788a;--p-ot:#c4ccd3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--p-tx:#5fb4d4;--p-cu:#8cc06a;--p-ni:#e8955c;--p-li:#b79ad8;--p-da:#e0bf5e;--p-te:#a4b3c0;--p-ot:#3c4955}}
+:root[data-theme="dark"]{--p-tx:#5fb4d4;--p-cu:#8cc06a;--p-ni:#e8955c;--p-li:#b79ad8;--p-da:#e0bf5e;--p-te:#a4b3c0;--p-ot:#3c4955}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+h1{font-family:var(--f-display);font-stretch:78%;font-weight:800;font-size:32px;letter-spacing:-.01em;line-height:1;margin:0;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.runinfo{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.runinfo b{color:var(--ink);font-weight:500}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+/* sessions strip */
+.sessions{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.sess{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 10px;font-family:var(--f-mono);font-size:12px;display:flex;gap:8px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.sess.on .dot{background:var(--open)}
+.sess .t{color:var(--muted)}
+/* layout */
+.desk{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:880px){.desk{grid-template-columns:minmax(0,1fr)}}
+section{min-width:0;display:flex;flex-direction:column;gap:12px}
+.panehead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:6px}
+h2{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:19px;margin:0}
+.count{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+select,input[type=search]{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+input[type=search]{flex:1 1 160px}
+select:focus-visible,input:focus-visible,button:focus-visible,.co:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+/* news */
+.feed{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.item{display:grid;grid-template-columns:70px minmax(0,1fr);gap:4px 14px;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.date{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.tag{font-family:var(--f-mono);font-size:11px;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent)}
+.mat{font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em}
+.mat.high{background:var(--high-soft);color:var(--high)}
+.mat.medium{background:var(--med-soft);color:var(--med)}
+.mat.low{background:var(--low-soft);color:var(--low)}
+.cat{color:var(--muted)}
+.hl{font-weight:600;font-size:15px;line-height:1.35;margin:4px 0 2px;text-wrap:balance}
+.sum{color:var(--ink);margin:0;max-width:72ch}
+.src{font-size:12px;margin-top:4px}
+.src a{color:var(--accent)}
+.more{font:inherit;font-size:13px;margin:0;padding:10px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--accent);cursor:pointer;width:100%}
+.empty{padding:28px 18px;color:var(--muted);text-align:center}
+.empty b{display:block;color:var(--ink);margin-bottom:4px}
+/* register */
+.reg{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 10px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.co{cursor:pointer}
+.co:hover td{background:var(--accent-soft)}
+.co.sel td{background:var(--accent-soft)}
+.nm{font-weight:600}
+.tk{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.up{color:var(--open)} .dn{color:var(--high)}
+/* detail */
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.detail h3{font-family:var(--f-display);font-stretch:85%;font-size:18px;margin:0}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.kv div{display:flex;flex-direction:column}
+.kv .v{font-family:var(--f-mono);font-size:14px}
+.note{font-size:12px;color:var(--muted)}
+.btn{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;align-self:flex-start}
+.status{font-size:12px;color:var(--med)}
+.tabs{display:flex;flex-wrap:wrap;gap:2px 4px}
+.tab{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:19px;background:none;border:0;padding:0 10px 0 0;color:var(--muted);cursor:pointer}
+.tab[aria-selected=true]{color:var(--ink)}
+.chart{width:100%;height:auto;display:block}
+.chart .bar{fill:var(--accent)}
+.chart .bar.last{fill:var(--ink)}
+.chart .ni{stroke:var(--med);fill:none;stroke-width:2}
+.chart .nid{fill:var(--med)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart text{fill:var(--muted);font-family:var(--f-mono);font-size:10px}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.mini{overflow-x:auto}
+.mini table{font-size:12px}
+.mini td,.mini th{padding:5px 8px}
+.tl{display:flex;flex-direction:column;gap:8px;border-left:2px solid var(--line);padding-left:12px}
+.tl div{font-size:13px}
+.tl .d{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.yr{padding:8px 14px;background:var(--bg);font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:15px;border-top:1px solid var(--line)}
+.yr:first-child{border-top:0}
+.bmrow{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer}
+.bmrow:hover{background:var(--accent-soft)}
+.bmrow .nm{font-size:13px}
+.bmrow .sub2{font-size:11px;color:var(--muted)}
+.mixbar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--bg);min-width:0}
+.mixbar span{display:block;height:100%}
+.mixbar.pending{border:1px dashed var(--line);background:transparent;font-size:10px;color:var(--muted);align-items:center;padding-left:6px}
+.flags{font-family:var(--f-mono);font-size:11px;text-align:right;color:var(--muted);line-height:1.35}
+.flags b{font-weight:500}
+.ni-high{color:var(--high)} .ni-med{color:var(--med)}
+.grphead{padding:10px 14px 6px;background:var(--bg);border-top:1px solid var(--line)}
+.grphead:first-child{border-top:0}
+.grphead h4{margin:0;font-family:var(--f-display);font-stretch:85%;font-size:15px}
+.grphead p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.mlegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line)}
+.mlegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px}
+.mchip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted)}
+.mchip b{color:var(--ink);font-weight:600}
+.techwrap{overflow-x:auto}
+.techwrap table{font-size:12px;min-width:860px}
+.techwrap td{vertical-align:top}
+.techwrap td.co2{cursor:pointer;min-width:110px}
+.techwrap td.co2:hover{color:var(--accent)}
+.pill{display:inline-block;font-size:10.5px;font-weight:600;padding:0 6px;border-radius:4px;margin:0 3px 3px 0;letter-spacing:.02em}
+.pill.live{background:var(--open);color:var(--surface)}
+.pill.pilot{background:var(--med-soft);color:var(--med)}
+.pill.discontinued{background:var(--low-soft);color:var(--low);text-decoration:line-through}
+.pill.planned{background:var(--accent-soft);color:var(--accent)}
+.lat{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dim{color:var(--muted)}
+.techgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.techgrid > div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.techgrid h5{margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.techgrid p{margin:0;font-size:12.5px}
+@media (max-width:520px){.bmrow{grid-template-columns:minmax(0,1fr) 80px}.bmrow .mixbar{grid-column:1/-1;grid-row:2}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Exchange Sector <span>Monitor</span></h1>
+      <p class="sub">News, results and operating data on exchange groups, post-trade infrastructure and market-data providers. Updated every weekday morning (Moscow time).</p>
+    </div>
+    <div class="runinfo" id="runinfo">Waiting for the first update run…</div>
+  </header>
+
+  <div>
+    <div class="label" style="margin-bottom:6px">Regular trading sessions now <span style="text-transform:none;letter-spacing:0;font-weight:400">(cash equities, holidays not reflected)</span></div>
+    <div class="sessions" id="sessions"></div>
+  </div>
+
+  <p class="status" id="status" hidden></p>
+
+  <div class="desk">
+    <section aria-labelledby="newsh">
+      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button></div><span class="count" id="ncount"></span></div>
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search headlines and summaries" aria-label="Search news">
+        <select id="seg" aria-label="Segment">
+          <option value="">All segments</option>
+          <option value="exchange">Listed exchange groups</option>
+          <option value="em_exchange">Emerging-market exchanges</option>
+          <option value="post_trade">Post-trade &amp; CSDs</option>
+          <option value="data_index">Data &amp; index providers</option>
+        </select>
+        <select id="cat" aria-label="Category">
+          <option value="">All categories</option>
+          <option value="results">Results</option>
+          <option value="volumes">Volumes &amp; operating data</option>
+          <option value="m_and_a">M&amp;A &amp; partnerships</option>
+          <option value="regulation">Regulation</option>
+          <option value="product">Products &amp; listings</option>
+          <option value="technology">Technology</option>
+          <option value="strategy">Strategy &amp; capital</option>
+          <option value="leadership">Leadership</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="chips" role="group" aria-label="Materiality" id="chips">
+        <button class="chip" data-m="high" aria-pressed="false">High</button>
+        <button class="chip" data-m="medium" aria-pressed="false">Medium</button>
+        <button class="chip" data-m="low" aria-pressed="false">Low</button>
+      </div>
+      <div class="feed" id="feed"><div class="empty"><b>No news collected yet</b>The first update run fills this tape with recent items for every company in coverage.</div></div>
+    </section>
+
+    <section aria-labelledby="regh">
+      <div class="panehead"><h2 id="regh">Coverage register</h2><span class="count" id="ccount"></span></div>
+      <div class="detail" id="detail" hidden></div>
+      <div class="reg">
+        <table>
+          <thead><tr><th>Company</th><th>Period</th><th class="num">Revenue</th><th class="num">YoY</th><th class="num">Mkt cap</th></tr></thead>
+          <tbody id="reg"><tr><td colspan="5" class="empty"><b>Coverage list loading</b>Companies appear here once the register is seeded.</td></tr></tbody>
+        </table>
+      </div>
+      <p class="note">Figures are the latest reported period, in reporting currency. Click a company for its profile, operating metrics and news.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+const SEG={exchange:"Listed exchange groups",em_exchange:"Emerging-market exchanges",post_trade:"Post-trade & CSDs",data_index:"Data & index providers"};
+const CAT={results:"Results",volumes:"Volumes",m_and_a:"M&A",regulation:"Regulation",product:"Product",technology:"Technology",strategy:"Strategy",leadership:"Leadership",other:"Other"};
+const SESS=[["MOEX","Europe/Moscow","09:50","18:50"],["Borsa İstanbul","Europe/Istanbul","10:00","18:00"],["LSE","Europe/London","08:00","16:30"],["Xetra","Europe/Berlin","09:00","17:30"],["Euronext","Europe/Paris","09:00","17:30"],["SIX","Europe/Zurich","09:00","17:30"],["NYSE/Nasdaq","America/New_York","09:30","16:00"],["B3","America/Sao_Paulo","10:00","17:00"],["JPX","Asia/Tokyo","09:00","15:30"],["HKEX","Asia/Hong_Kong","09:30","16:00"],["SGX","Asia/Singapore","09:00","17:00"],["NSE","Asia/Kolkata","09:15","15:30"],["Tadawul","Asia/Riyadh","10:00","15:00"],["ASX","Australia/Sydney","10:00","16:00"]];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let news=[],cos={},selCo=null,mats=new Set(),shown=40,events=[],series={},mode="news";
+const involves=(n,c)=>(n.companies&&n.companies.length?n.companies:[n.company]).includes(c);
+
+function renderTimeline(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value, cat=$("cat").value;
+  const list=events.filter(e=>{
+    const ids=e.companies&&e.companies.length?e.companies:[e.company];
+    if(selCo&&!ids.includes(selCo))return false;
+    if(seg&&!ids.some(c=>cos[c]?.segment===seg))return false;
+    if(cat&&e.category!==cat)return false;
+    if(q&&!((e.title||"")+" "+(e.summary||"")).toLowerCase().includes(q))return false;
+    return true;
+  });
+  $("ncount").textContent=list.length+" event"+(list.length===1?"":"s");
+  if(!events.length){$("feed").innerHTML='<div class="empty"><b>No archive yet</b>The history backfill adds key events since 2015: deals, listings, leadership changes, regulation and outages.</div>';return;}
+  if(!list.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search or widen the filters.</div>';return;}
+  let html="",yr="";
+  for(const e of list.slice(0,shown)){
+    const y=(e.date||"").slice(0,4);
+    if(y!==yr){yr=y;html+=`<div class="yr">${esc(y)}</div>`;}
+    const ids=e.companies&&e.companies.length?e.companies:[e.company];
+    const tags=ids.filter(Boolean).map(c=>`<span class="tag">${esc(cos[c]?.short||c)}</span>`).join("");
+    html+=`<article class="item"><div class="date">${esc((e.date||"").slice(5).replace("-","/"))}</div><div>
+      <div class="meta">${tags}<span class="cat">${esc(CAT[e.category]||e.category||"")}</span></div>
+      <p class="hl">${esc(e.title)}</p>${e.summary?`<p class="sum">${esc(e.summary)}</p>`:""}
+      ${e.url?`<div class="src"><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.source||"Source")}</a></div>`:""}</div></article>`;
+  }
+  if(list.length>shown)html+=`<button class="more" id="more">Show ${Math.min(40,list.length-shown)} more</button>`;
+  $("feed").innerHTML=html; const m=$("more"); if(m)m.onclick=()=>{shown+=40;renderTimeline();};
+}
+function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():renderTech(); }
+
+/* ---- technology ---- */
+let tech={};
+const fmtLat=l=>{ if(!l||typeof l.value_us!=="number")return '<span class="dim">not disclosed</span>'; const v=l.value_us; const s=v<1?`${Math.round(v*1000)} ns`:v<1000?`${+v.toFixed(v<10?1:0)} µs`:`${+(v/1000).toFixed(1)} ms`; return `<span class="lat">${s}</span>${l.metric?`<br><span class="dim">${esc(l.metric)}</span>`:""}`; };
+const plat=(o)=>o&&(o.platform||o.vendor)?`${esc(o.platform||"")}${o.vendor?`<br><span class="dim">${esc(o.vendor)}</span>`:""}`:'<span class="dim">—</span>';
+const dltPills=(d)=>(d||[]).length?(d||[]).map(x=>`<span class="pill ${esc(x.status||"pilot")}" title="${esc(x.description||"")}">${esc(x.name)}</span>`).join(""):'<span class="dim">none known</span>';
+function renderTech(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value;
+  const arr=Object.values(cos).filter(c=>(!seg||c.segment===seg)&&(!q||((c.name||"")+" "+(c.short||"")+" "+JSON.stringify(tech[c.id]||{})).toLowerCase().includes(q)));
+  const done=arr.filter(c=>tech[c.id]).length;
+  $("ncount").textContent=`${arr.length} companies · ${done} profiled`;
+  if(!done){$("feed").innerHTML='<div class="empty"><b>No technology profiles yet</b>Overnight research runs fill trading, clearing and settlement platforms, published latency, DLT projects and cloud use for every company.</div>';return;}
+  const order=["exchange","em_exchange","post_trade","data_index"];
+  let rows="";
+  for(const s of order){ const g=arr.filter(c=>c.segment===s).sort((a,b)=>(a.short||a.name).localeCompare(b.short||b.name)); if(!g.length)continue;
+    rows+=`<tr class="grp"><td colspan="7">${esc(SEG[s])}</td></tr>`;
+    for(const c of g){ const t=tech[c.id];
+      if(!t){rows+=`<tr><td class="co2" data-id="${esc(c.id)}"><b>${esc(c.short||c.name)}</b></td><td colspan="6" class="dim">profile pending</td></tr>`;continue;}
+      rows+=`<tr><td class="co2" data-id="${esc(c.id)}" tabindex="0"><b>${esc(c.short||c.name)}</b></td><td>${plat(t.trading)}</td><td>${fmtLat(t.trading?.latency)}</td><td>${plat(t.clearing)}${t.clearing?.risk_model?`<br><span class="dim">${esc(t.clearing.risk_model)}</span>`:""}</td><td>${plat(t.settlement)}${t.settlement?.cycle?`<br><span class="dim">${esc(t.settlement.cycle)}</span>`:""}</td><td>${dltPills(t.dlt)}</td><td>${t.cloud?.provider?`${esc(t.cloud.provider)}${t.cloud.scope?`<br><span class="dim">${esc(t.cloud.scope)}</span>`:""}`:'<span class="dim">—</span>'}</td></tr>`;
+    }
+  }
+  $("feed").innerHTML=`<div class="mlegend"><span><span class="pill live">live</span>in production</span><span><span class="pill pilot">pilot</span>pilot or sandbox</span><span><span class="pill planned">planned</span>announced</span><span><span class="pill discontinued">stopped</span>discontinued</span><span>Latency as each company publishes it; definitions differ.</span></div>
+  <div class="techwrap"><table><thead><tr><th>Company</th><th>Trading platform</th><th>Latency</th><th>Clearing & risk</th><th>Settlement & cycle</th><th>DLT & tokenisation</th><th>Cloud</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $("feed").querySelectorAll(".co2").forEach(td=>{const f=()=>select(td.dataset.id);td.onclick=f;td.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();f();}};});
+}
+function techDetail(c){
+  const t=tech[c.id]; if(!t)return "";
+  const box=(h,body)=>body?`<div><h5>${esc(h)}</h5><p>${body}</p></div>`:"";
+  const lines=o=>o?[o.platform,o.vendor,o.since?`since ${o.since}`:"",o.notes].filter(Boolean).map(esc).join(" · "):"";
+  return `<div><div class="label" style="margin-bottom:6px">Technology</div>${t.summary?`<p style="margin:0 0 8px">${esc(t.summary)}</p>`:""}<div class="techgrid">
+    ${box("Trading",[lines(t.trading),t.trading?.latency?.value_us!=null?`Latency ${fmtLat(t.trading.latency).replace(/<br>/g," · ")}${t.trading.latency.as_of?` (${esc(t.trading.latency.as_of)})`:""}`:"",t.trading?.colocation?`Colocation: ${esc(t.trading.colocation)}`:"",(t.trading?.protocols||[]).length?`Protocols: ${t.trading.protocols.map(esc).join(", ")}`:""].filter(Boolean).join("<br>"))}
+    ${box("Clearing & risk",[lines(t.clearing),t.clearing?.risk_model?`Risk model: ${esc(t.clearing.risk_model)}`:""].filter(Boolean).join("<br>"))}
+    ${box("Settlement & depository",[lines(t.settlement),t.settlement?.cycle?`Cycle: ${esc(t.settlement.cycle)}`:""].filter(Boolean).join("<br>"))}
+    ${box("DLT & tokenisation",(t.dlt||[]).map(d=>`<span class="pill ${esc(d.status||"pilot")}">${esc(d.status||"")}</span>${esc(d.name)}${d.year?` (${esc(d.year)})`:""}${d.description?` — ${esc(d.description)}`:""}`).join("<br>"))}
+    ${box("Cloud",t.cloud?[t.cloud.provider,t.cloud.scope,t.cloud.notes].filter(Boolean).map(esc).join(" · "):"")}
+    ${box("Other platforms",(t.other_platforms||[]).map(p=>`${esc(p.name)}${p.purpose?` — ${esc(p.purpose)}`:""}`).join("<br>"))}
+    ${box("Technology sold to others",t.tech_business?esc(t.tech_business):"")}
+    ${box("Notable outages",(t.outages||[]).map(o=>`${esc(o.date)} — ${esc(o.description)}`).join("<br>"))}
+  </div>${(t.sources||[]).length?`<div class="note" style="margin-top:6px">Sources: ${t.sources.slice(0,6).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}${t.updated?` · updated ${esc(t.updated)}`:""}</div>`:""}</div>`;
+}
+
+/* ---- business-model taxonomy ---- */
+let mix={};
+const ARCH=[
+  ["vertical","Vertically integrated exchange","Owns trading, clearing and settlement; fee revenue not dominated by data or technology."],
+  ["derivatives_led","Derivatives-led exchange","Derivatives make up at least half of trading and clearing revenue; no own depository."],
+  ["data_led","Data- and technology-led group","Data and technology above 50% of fee revenue, with a trading venue."],
+  ["trading_led","Trading- and listing-led exchange","Venue without its own settlement; cash, FX or bond trading and listings dominate."],
+  ["federated","Federated or consolidating exchange","Several national venues being integrated into one group."],
+  ["ccp","Central counterparty","No venue; clearing is the largest post-trade pool."],
+  ["csd","Central securities depository","No venue; custody and settlement is the largest post-trade pool."],
+  ["pure_data","Pure data, index and ratings","No venue; subscriptions and licensing."],
+  ["utility","Network and processing utility","No venue; messaging or outsourced processing."]];
+const ANAME=Object.fromEntries(ARCH.map(a=>[a[0],a[1]]));
+const GROUPS=[["tx","Trading & clearing",["trading_cash","trading_derivatives","trading_other","clearing"]],["cu","Custody & settlement",["custody"]],["ni","Net interest income",["nii"]],["li","Listings",["listings"]],["da","Data & indices",["data"]],["te","Technology",["technology"]],["ot","Other",["other"]]];
+const OWN={listed:"Listed",unlisted:"Unlisted",state:"State-owned",bank_owned:"Bank-owned",user_owned:"User-owned",cooperative:"Cooperative",private:"Private",subsidiary:"Subsidiary"};
+const num=v=>typeof v==="number"&&isFinite(v)?v:0;
+function shares(pools){
+  const p={}; let tot=0; for(const g of GROUPS)for(const k of g[2]){p[k]=num(pools?.[k]);tot+=p[k];}
+  if(tot<=0)return null;
+  const g={}; for(const [key,,ks] of GROUPS)g[key]=ks.reduce((s,k)=>s+p[k],0)/tot;
+  const fee=tot-p.nii, trading=p.trading_cash+p.trading_derivatives+p.trading_other;
+  return {g,p,tot,fee,trading,nii:p.nii/tot,dt:fee>0?(p.data+p.technology)/fee:0,deriv:(trading+p.clearing)>0?p.trading_derivatives/(trading+p.clearing):0};
+}
+function classify(s,model){
+  if(!s)return null;
+  if(s.trading<=0){ const post=s.p.clearing+s.p.custody;
+    if(post>=s.p.data+s.p.technology) return s.p.clearing>=s.p.custody?"ccp":"csd";
+    return s.p.data>=s.p.technology?"pure_data":"utility"; }
+  if(s.dt>0.5)return "data_led";
+  if(model?.federated)return "federated";
+  if(model?.integration==="vertical")return "vertical";
+  if(s.deriv>=0.5)return "derivatives_led";
+  return "trading_led";
+}
+function yearsOf(id){ return (mix[id]?.years||[]).filter(y=>typeof y.year==="number").slice().sort((a,b)=>a.year-b.year); }
+function avgShares(id){
+  const ys=yearsOf(id).slice(-3); if(!ys.length)return null;
+  const pools={}; for(const y of ys)for(const g of GROUPS)for(const k of g[2])pools[k]=(pools[k]||0)+num(y.pools?.[k]);
+  const sh=shares(pools); if(sh)sh.span=ys.length>1?`${ys[0].year}–${ys.at(-1).year}`:`${ys[0].year}`; return sh;
+}
+function current(c){ const s=avgShares(c.id); const a=s?classify(s,c.model):null; return {s,arch:a||c.model?.archetype||null,basis:a?`from revenue mix ${s.span}`:"provisional, pending revenue mix"}; }
+function niFlag(s){ if(!s)return ""; const v=s.nii*100; return v>=30?"ni-high":v>=15?"ni-med":""; }
+function barHTML(s){ if(!s)return '<div class="mixbar pending">revenue mix pending</div>';
+  return `<div class="mixbar" role="img" aria-label="${GROUPS.map(([k,n])=>`${n} ${Math.round(s.g[k]*100)}%`).join(", ")}">${GROUPS.filter(([k])=>s.g[k]>0).map(([k,n])=>`<span style="width:${(s.g[k]*100).toFixed(2)}%;background:var(--p-${k})" title="${n}: ${Math.round(s.g[k]*100)}%"></span>`).join("")}</div>`; }
+function legendHTML(){ return `<div class="mlegend">${GROUPS.map(([k,n])=>`<span><i style="background:var(--p-${k})"></i>${n}</span>`).join("")}</div>`; }
+function renderModels(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value;
+  const arr=Object.values(cos).filter(c=>(!seg||c.segment===seg)&&(!q||((c.name||"")+" "+(c.short||"")).toLowerCase().includes(q)));
+  const withMix=arr.filter(c=>avgShares(c.id)).length;
+  $("ncount").textContent=`${arr.length} companies · ${withMix} with revenue mix`;
+  if(!arr.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search or segment filter.</div>';return;}
+  let html=legendHTML();
+  for(const [key,label,test] of ARCH){
+    const g=arr.map(c=>({c,...current(c)})).filter(x=>x.arch===key);
+    if(!g.length)continue;
+    g.sort((a,b)=>(b.s?1:0)-(a.s?1:0)||(a.c.short||a.c.name).localeCompare(b.c.short||b.c.name));
+    html+=`<div class="grphead"><h4>${esc(label)} <span class="count">${g.length}</span></h4><p>${esc(test)}</p></div>`;
+    for(const {c,s,basis} of g){
+      html+=`<div class="bmrow" tabindex="0" data-id="${esc(c.id)}"><div><div class="nm">${esc(c.short||c.name)}</div><div class="sub2">${esc(OWN[c.model?.ownership]||"")}${c.model?.parent?` · part of ${esc(cos[c.model.parent]?.short||c.model.parent)}`:""}${s?"":" · provisional"}</div></div>${barHTML(s)}
+        <div class="flags">${s?`<span class="${niFlag(s)}">NII <b>${Math.round(s.nii*100)}%</b></span><br>Data+tech <b>${Math.round(s.dt*100)}%</b>`:"—"}</div></div>`;
+    }
+  }
+  $("feed").innerHTML=html;
+  $("feed").querySelectorAll(".bmrow").forEach(r=>{const f=()=>select(r.dataset.id);r.onclick=f;r.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+}
+function modelDetail(c){
+  const m=c.model||{}, cur=current(c), ys=yearsOf(c.id);
+  const chips=[["Archetype",ANAME[cur.arch]||"—"],["Integration",{vertical:"Vertical silo",partial:"Partial",single:"Single stage"}[m.integration]||"—"],["Ownership",OWN[m.ownership]||"—"],["Market",m.market_structure||"—"]];
+  if(cur.s)chips.push(["Rate sensitivity",cur.s.nii>=.3?"High":cur.s.nii>=.15?"Medium":"Low"]);
+  let html=`<div><div class="label" style="margin-bottom:6px">Business model</div><div class="chiprow">${chips.map(([k,v])=>`<span class="mchip">${esc(k)} <b>${esc(v)}</b></span>`).join("")}</div>
+    <div class="note" style="margin-top:4px">Archetype ${esc(cur.basis)}.${m.note?" "+esc(m.note):""}</div></div>`;
+  if(ys.length){
+    const W=600,L=36,R=8,T=8,B=22,H=170,iw=W-L-R,ih=H-T-B,bw=iw/ys.length;
+    let g=`<line class="grid" x1="${L}" x2="${W-R}" y1="${T}" y2="${T}"/><line class="grid" x1="${L}" x2="${W-R}" y1="${T+ih/2}" y2="${T+ih/2}"/><text x="${L-6}" y="${T+3}" text-anchor="end">100%</text><text x="${L-6}" y="${T+ih/2+3}" text-anchor="end">50%</text><text x="${L-6}" y="${T+ih+3}" text-anchor="end">0</text>`;
+    const path=[];
+    ys.forEach((y,i)=>{const s=shares(y.pools); if(!s)return; let acc=0; const x=L+i*bw+bw*.15,w=bw*.7;
+      for(const [k,n] of GROUPS){const h=s.g[k]*ih; if(h<=0)continue; g+=`<rect x="${x.toFixed(1)}" y="${(T+ih-acc-h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="var(--p-${k})"><title>${y.year} · ${n}: ${Math.round(s.g[k]*100)}%</title></rect>`; acc+=h;}
+      if(ys.length<=12||i%2===0||i===ys.length-1)g+=`<text x="${(L+i*bw+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle">${y.year}</text>`;
+      const a=classify(s,m); if(a){const last=path.at(-1); if(last&&last.a===a)last.to=y.year; else path.push({a,from:y.year,to:y.year});}
+    });
+    html+=`<div><div class="label" style="margin-bottom:4px">Revenue mix by year · ${esc(mix[c.id].currency||"")}${mix[c.id].revenue_basis?` · ${esc(mix[c.id].revenue_basis)}`:""}</div>
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Revenue mix by year">${g}</svg>${legendHTML().replace('class="mlegend"','class="mlegend" style="padding:6px 0;border:0"')}
+      ${path.length?`<div class="note"><b>Archetype path:</b> ${path.map(p=>`${esc(ANAME[p.a])} (${p.from===p.to?p.from:p.from+"–"+p.to})`).join(" → ")}</div>`:""}
+      ${mix[c.id].note?`<div class="note">${esc(mix[c.id].note)}</div>`:""}</div>`;
+  }
+  return html;
+}
+
+function annualChart(s){
+  const rows=(s.annual||[]).filter(r=>typeof r.revenue==="number").sort((a,b)=>a.year-b.year);
+  if(rows.length<2)return "";
+  const W=600,H=200,L=44,R=10,T=14,B=24,iw=W-L-R,ih=H-T-B;
+  const vals=rows.flatMap(r=>[r.revenue,typeof r.net_income==="number"?r.net_income:0]);
+  const max=Math.max(...vals)*1.08, min=Math.min(0,...vals);
+  const y=v=>T+ih-(v-min)/(max-min)*ih, bw=iw/rows.length;
+  let g="";
+  const ticks=[0,max/2,max].map(v=>Math.round(v));
+  for(const t of ticks)g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L-6}" y="${y(t)+3}" text-anchor="end">${fmtNum(t)}</text>`;
+  rows.forEach((r,i)=>{const x=L+i*bw+bw*.18,w=bw*.64;g+=`<rect class="bar${i===rows.length-1?" last":""}" x="${x}" y="${y(r.revenue)}" width="${w}" height="${Math.max(0,y(min<0?0:min)-y(r.revenue))}"><title>${r.year}: revenue ${fmtNum(r.revenue)}</title></rect>`;
+    if(i%(rows.length>8?2:1)===0||i===rows.length-1)g+=`<text x="${L+i*bw+bw/2}" y="${H-8}" text-anchor="middle">${r.year}</text>`;});
+  const pts=rows.map((r,i)=>typeof r.net_income==="number"?[L+i*bw+bw/2,y(r.net_income),r]:null).filter(Boolean);
+  if(pts.length>1)g+=`<polyline class="ni" points="${pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}"/>`;
+  pts.forEach(p=>g+=`<circle class="nid" cx="${p[0]}" cy="${p[1]}" r="3"><title>${p[2].year}: net income ${fmtNum(p[2].net_income)}</title></circle>`);
+  return `<div><div class="label" style="margin-bottom:4px">Annual history · ${esc(s.currency||"")}${s.revenue_basis?` · ${esc(s.revenue_basis)}`:""}</div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Annual revenue and net income">${g}</svg>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Revenue</span><span><i style="background:var(--med)"></i>Net income</span></div></div>`;
+}
+function quarterTable(s){
+  const q=(s.quarterly||[]).slice().sort((a,b)=>(b.end||b.period||"").localeCompare(a.end||a.period||"")).slice(0,12);
+  if(!q.length)return "";
+  const opKeys=[...new Set(q.flatMap(r=>Object.keys(r.operating||{})))].slice(0,2);
+  return `<div class="mini"><div class="label" style="margin-bottom:4px">Quarterly · ${esc(s.currency||"")}</div><table><thead><tr><th>Quarter</th><th class="num">Revenue</th><th class="num">YoY</th><th class="num">Net income</th>${opKeys.map(k=>`<th class="num">${esc(k)}</th>`).join("")}</tr></thead><tbody>
+  ${q.map(r=>`<tr><td class="num" style="text-align:left">${esc(r.period)}</td><td class="num">${fmtNum(r.revenue)}</td><td class="num">${yoy(r.revenue_yoy)}</td><td class="num">${fmtNum(r.net_income)}</td>${opKeys.map(k=>`<td class="num">${esc((r.operating||{})[k]??"—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function coTimeline(id){
+  const ev=events.filter(e=>involves(e,id)).slice(0,8);
+  if(!ev.length)return "";
+  return `<div><div class="label" style="margin-bottom:6px">Key events</div><div class="tl">${ev.map(e=>`<div><span class="d">${esc(e.date)}</span> ${esc(e.title)}</div>`).join("")}</div></div>`;
+}
+
+function sessions(){
+  const now=new Date();
+  $("sessions").innerHTML=SESS.map(([n,tz,o,c])=>{
+    const p=new Intl.DateTimeFormat("en-GB",{timeZone:tz,hour:"2-digit",minute:"2-digit",weekday:"short",hour12:false}).formatToParts(now);
+    const g=t=>p.find(x=>x.type===t)?.value; const wd=g("weekday"); const hm=g("hour")+":"+g("minute");
+    const weekend=tz==="Asia/Riyadh"?["Fri","Sat"]:["Sat","Sun"];
+    const on=!weekend.includes(wd)&&hm>=o&&hm<c;
+    return `<div class="sess${on?" on":""}"><span class="dot" aria-hidden="true"></span>${esc(n)} <span class="t">${hm}</span><span class="t">${on?"open":"closed"}</span></div>`;
+  }).join("");
+}
+sessions(); setInterval(sessions,60000);
+
+function fmtNum(v){ if(v==null||v==="")return "—"; if(typeof v==="string")return esc(v); const a=Math.abs(v); return a>=1e9?(v/1e9).toFixed(a>=1e10?1:2)+"bn":a>=1e6?(v/1e6).toFixed(0)+"m":v.toLocaleString("en-US"); }
+function money(v,ccy){ const n=fmtNum(v); return n==="—"?n:(ccy?esc(ccy)+" ":"")+n; }
+function yoy(v){ if(v==null||v==="")return "—"; const n=Number(v); if(isNaN(n))return esc(v); return `<span class="${n>=0?"up":"dn"}">${n>=0?"+":""}${n.toFixed(1)}%</span>`; }
+
+function renderFeed(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value, cat=$("cat").value;
+  let list=news.filter(n=>{
+    if(selCo&&!(n.companies||[n.company]).includes(selCo))return false;
+    if(seg&&!(n.companies||[n.company]).some(c=>cos[c]?.segment===seg))return false;
+    if(cat&&n.category!==cat)return false;
+    if(mats.size&&!mats.has(n.materiality))return false;
+    if(q&&!((n.headline||"")+" "+(n.summary||"")).toLowerCase().includes(q))return false;
+    return true;
+  });
+  $("ncount").textContent=list.length+" item"+(list.length===1?"":"s");
+  if(!news.length)return;
+  if(!list.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search or widen the filters.</div>';return;}
+  $("feed").innerHTML=list.slice(0,shown).map(n=>{
+    const tags=(n.companies||[n.company]).filter(Boolean).map(c=>`<span class="tag">${esc(cos[c]?.short||cos[c]?.name||c)}</span>`).join("");
+    const d=(n.date||"").slice(5).replace("-","/");
+    return `<article class="item"><div class="date">${esc(d)}<br>${esc((n.date||"").slice(0,4))}</div><div>
+      <div class="meta">${tags}<span class="mat ${esc(n.materiality)}">${esc(n.materiality||"")}</span><span class="cat">${esc(CAT[n.category]||n.category||"")}</span></div>
+      <p class="hl">${esc(n.headline)}</p><p class="sum">${esc(n.summary)}</p>
+      ${n.url?`<div class="src"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.source||"Source")}</a></div>`:""}
+    </div></article>`;
+  }).join("")+(list.length>shown?`<button class="more" id="more">Show ${Math.min(40,list.length-shown)} more</button>`:"");
+  const m=$("more"); if(m)m.onclick=()=>{shown+=40;renderFeed();};
+}
+
+function renderReg(){
+  const arr=Object.values(cos); $("ccount").textContent=arr.length+" companies";
+  if(!arr.length)return;
+  const order=["exchange","em_exchange","post_trade","data_index"];
+  let html="";
+  for(const s of order){
+    const g=arr.filter(c=>c.segment===s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+    if(!g.length)continue;
+    html+=`<tr class="grp"><td colspan="5">${esc(SEG[s])}</td></tr>`;
+    for(const c of g){ const m=c.metrics||{};
+      html+=`<tr class="co${selCo===c.id?" sel":""}" tabindex="0" data-id="${esc(c.id)}"><td><div class="nm">${esc(c.name)}</div><div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")}</div></td>
+      <td class="num">${esc(m.period||"—")}</td><td class="num">${money(m.revenue,m.currency)}</td><td class="num">${yoy(m.revenue_yoy)}</td><td class="num">${money(m.market_cap,m.market_cap_ccy||m.currency)}</td></tr>`;
+    }
+  }
+  $("reg").innerHTML=html;
+  $("reg").querySelectorAll(".co").forEach(r=>{const f=()=>select(r.dataset.id);r.onclick=f;r.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+}
+
+function select(id){
+  selCo=selCo===id?null:id; shown=40;
+  const c=cos[selCo], d=$("detail");
+  if(!c){d.hidden=true;}else{
+    const m=c.metrics||{}; const ops=c.operating||{};
+    const kv=[["Period",esc(m.period||"—")],["Revenue",money(m.revenue,m.currency)],["Revenue YoY",yoy(m.revenue_yoy)],["Net income",money(m.net_income,m.currency)],["EBITDA margin",m.ebitda_margin!=null?esc(m.ebitda_margin)+"%":"—"],["Market cap",money(m.market_cap,m.market_cap_ccy||m.currency)]]
+      .concat(Object.entries(ops).map(([k,v])=>[esc(k),esc(v)]));
+    d.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h3>${esc(c.name)}</h3><button class="btn" id="clr">Show all news</button></div>
+      <div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")} · ${esc(SEG[c.segment]||"")}</div>
+      ${c.profile?`<p style="margin:0">${esc(c.profile)}</p>`:""}
+      ${modelDetail(c)}
+      ${techDetail(c)}
+      <div class="kv">${kv.map(([k,v])=>`<div><span class="label">${k}</span><span class="v">${v}</span></div>`).join("")}</div>
+      ${c.last_updated?`<div class="note">Figures last updated ${esc(c.last_updated)}${m.source?` · ${esc(m.source)}`:""}</div>`:""}
+      ${series[c.id]?annualChart(series[c.id])+quarterTable(series[c.id])+(series[c.id].note?`<div class="note">${esc(series[c.id].note)}</div>`:""):`<div class="note">Financial history appears here once the backfill reaches this company.</div>`}
+      ${coTimeline(c.id)}`;
+    d.hidden=false; $("clr").onclick=()=>select(selCo);
+  }
+  renderReg(); render();
+}
+
+$("q").addEventListener("input",()=>{shown=40;render();});
+$("seg").addEventListener("change",()=>{shown=40;render();});
+$("cat").addEventListener("change",()=>{shown=40;render();});
+document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const m=b.dataset.m; mats.has(m)?mats.delete(m):mats.add(m); b.setAttribute("aria-pressed",mats.has(m)); shown=40; renderFeed();});
+function setMode(m){mode=m;shown=40;$("t-news").setAttribute("aria-selected",m==="news");$("t-tl").setAttribute("aria-selected",m==="timeline");$("t-bm").setAttribute("aria-selected",m==="models");$("t-tech").setAttribute("aria-selected",m==="tech");$("chips").hidden=m!=="news";$("cat").hidden=m==="models"||m==="tech";
+  if(m==="news"&&!news.length){$("feed").innerHTML='<div class="empty"><b>No news collected yet</b>The first update run fills this tape with recent items for every company in coverage.</div>';$("ncount").textContent="";}
+  render();}
+$("t-news").onclick=()=>setMode("news"); $("t-tl").onclick=()=>setMode("timeline"); $("t-bm").onclick=()=>setMode("models"); $("t-tech").onclick=()=>setMode("tech");
+const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{renderReg();render();}};
+
+(async()=>{
+  const st=$("status");
+  const timer=setTimeout(()=>{st.textContent="The data store isn't answering yet. What you see may be out of date.";st.hidden=false;},10000);
+  const db=await window.claude?.use?.("db");
+  if(!db){clearTimeout(timer);
+    try{
+      const r=await fetch("data.json",{cache:"no-cache"}); if(!r.ok)throw new Error(r.status);
+      const S=await r.json(); const ent=o=>Object.entries(o||{});
+      cos={};ent(S.companies).forEach(([k,v])=>{cos[k]={id:k,...v};});
+      const byDate=(a,b)=>(b.date||"").localeCompare(a.date||"");
+      news=ent(S.news).map(([k,v])=>({id:k,...v})).sort(byDate);
+      events=ent(S.events).map(([k,v])=>({id:k,...v})).sort(byDate);
+      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{};
+      const v=S.status||{};
+      $("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;
+      st.textContent=`Read-only snapshot (as of ${S.exported_at||v.last_run||"the last update"}). Sign in to claude.ai for the live view.`;st.hidden=false;
+      refreshDetail();
+    }catch(e){st.textContent="Sign in to claude.ai to see the collected data.";st.hidden=false;}
+    return;}
+  const done=s=>{if(!s.metadata.fromCache){clearTimeout(timer);st.hidden=true;}};
+  const fail=()=>{clearTimeout(timer);st.textContent="The data couldn't be loaded. Reopen the page to try again.";st.hidden=false;};
+  db.collection("companies").onSnapshot(s=>{cos={};s.docs.forEach(d=>{cos[d.id]={id:d.id,...d.data()};});refreshDetail();done(s);},fail);
+  db.collection("news").orderBy("date","desc").limit(1000).onSnapshot(s=>{news=s.docs.map(d=>({id:d.id,...d.data()}));if(mode==="news")renderFeed();done(s);},fail);
+  db.collection("events").orderBy("date","desc").limit(1000).onSnapshot(s=>{events=s.docs.map(d=>({id:d.id,...d.data()}));if(mode==="timeline")renderTimeline();if(selCo)refreshDetail();},()=>{});
+  db.collection("series").onSnapshot(s=>{series={};s.docs.forEach(d=>{series[d.id]=d.data();});if(selCo)refreshDetail();},()=>{});
+  db.collection("tech").onSnapshot(s=>{tech={};s.docs.forEach(d=>{tech[d.id]=d.data();});if(mode==="tech")renderTech();if(selCo)refreshDetail();},()=>{});
+  db.collection("mix").onSnapshot(s=>{mix={};s.docs.forEach(d=>{mix[d.id]=d.data();});if(mode==="models")renderModels();if(selCo)refreshDetail();},()=>{});
+  db.doc("meta/status").onSnapshot(s=>{if(!s.exists)return;const v=s.data();$("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;},()=>{});
+})();
+})();
+</script>
+
+</body></html>
