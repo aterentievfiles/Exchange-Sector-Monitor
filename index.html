@@ -167,6 +167,23 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
 .mism{color:var(--high);font-weight:600}
 .pillars{margin:0;padding-left:18px;font-size:12.5px}
 .pillars li{margin-bottom:3px}
+.peer{overflow-x:auto}
+.peer table{font-size:12px;min-width:900px}
+th.srt{cursor:pointer;user-select:none}
+th.srt:hover{color:var(--ink)}
+th.srt[aria-sort]{color:var(--ink)}
+.spark{width:120px;height:28px;display:block}
+.spark polyline{fill:none;stroke:var(--accent);stroke-width:2}
+.spark circle{fill:var(--ink)}
+.volrow{display:grid;grid-template-columns:130px minmax(0,1fr) 110px 70px 124px;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);cursor:pointer;font-size:12.5px}
+.volrow:hover{background:var(--accent-soft)}
+.ctype{font-size:10.5px;font-weight:600;padding:0 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);letter-spacing:.02em}
+.ctype.results{background:var(--high-soft);color:var(--high)}
+.ctype.investor_day{background:var(--med-soft);color:var(--med)}
+.digest{padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12.5px}
+.digest b{font-weight:600}
+.nextev{font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+@media (max-width:520px){.volrow{grid-template-columns:minmax(0,1fr) 70px 124px}.volrow .vm,.volrow .vv{display:none}}
 @media (max-width:520px){.strow{grid-template-columns:minmax(0,1fr) 96px}.strow .mid{grid-column:1/-1;grid-row:2}}
 @media (max-width:520px){.bmrow{grid-template-columns:minmax(0,1fr) 80px}.bmrow .mixbar{grid-column:1/-1;grid-row:2}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -190,7 +207,7 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
 
   <div class="desk">
     <section aria-labelledby="newsh">
-      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button><button class="tab" role="tab" id="t-st" aria-selected="false">Investment stories</button></div><span class="count" id="ncount"></span></div>
+      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button><button class="tab" role="tab" id="t-st" aria-selected="false">Investment stories</button><button class="tab" role="tab" id="t-pe" aria-selected="false">Peers</button><button class="tab" role="tab" id="t-cal" aria-selected="false">Calendar</button></div><span class="count" id="ncount"></span></div>
       <div class="filters">
         <input type="search" id="q" placeholder="Search headlines and summaries" aria-label="Search news">
         <select id="seg" aria-label="Segment">
@@ -217,6 +234,7 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
         <button class="chip" data-m="high" aria-pressed="false">High</button>
         <button class="chip" data-m="medium" aria-pressed="false">Medium</button>
         <button class="chip" data-m="low" aria-pressed="false">Low</button>
+        <button class="chip" id="wk" aria-pressed="false">Last 7 days</button>
       </div>
       <div class="feed" id="feed"><div class="empty"><b>No news collected yet</b>The first update run fills this tape with recent items for every company in coverage.</div></div>
     </section>
@@ -226,11 +244,11 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
       <div class="detail" id="detail" hidden></div>
       <div class="reg">
         <table>
-          <thead><tr><th>Company</th><th>Period</th><th class="num">Revenue</th><th class="num">YoY</th><th class="num">Mkt cap</th></tr></thead>
+          <thead><tr id="reghead"><th class="srt" data-k="name" tabindex="0">Company</th><th>Period</th><th class="num srt" data-k="rev" tabindex="0">Revenue</th><th class="num srt" data-k="yoy" tabindex="0">YoY</th><th class="num srt" data-k="mcap" tabindex="0">Mkt cap</th></tr></thead>
           <tbody id="reg"><tr><td colspan="5" class="empty"><b>Coverage list loading</b>Companies appear here once the register is seeded.</td></tr></tbody>
         </table>
       </div>
-      <p class="note">Figures are the latest reported period, in reporting currency. Click a company for its profile, operating metrics and news.</p>
+      <p class="note">Figures are the latest reported period, in reporting currency. Click a column heading to sort (revenue and market cap are compared in US dollars). Click a company for its profile, operating metrics and news.</p>
     </section>
   </div>
 </div>
@@ -242,7 +260,7 @@ const CAT={results:"Results",volumes:"Volumes",m_and_a:"M&A",regulation:"Regulat
 const SESS=[["MOEX","Europe/Moscow","09:50","18:50"],["Borsa İstanbul","Europe/Istanbul","10:00","18:00"],["LSE","Europe/London","08:00","16:30"],["Xetra","Europe/Berlin","09:00","17:30"],["Euronext","Europe/Paris","09:00","17:30"],["SIX","Europe/Zurich","09:00","17:30"],["NYSE/Nasdaq","America/New_York","09:30","16:00"],["B3","America/Sao_Paulo","10:00","17:00"],["JPX","Asia/Tokyo","09:00","15:30"],["HKEX","Asia/Hong_Kong","09:30","16:00"],["SGX","Asia/Singapore","09:00","17:00"],["NSE","Asia/Kolkata","09:15","15:30"],["Tadawul","Asia/Riyadh","10:00","15:00"],["ASX","Australia/Sydney","10:00","16:00"]];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let news=[],cos={},selCo=null,mats=new Set(),shown=40,events=[],series={},mode="news";
+let news=[],cos={},selCo=null,mats=new Set(),shown=40,events=[],series={},mode="news",week=false,regSort=null,pendingCo=null;
 const involves=(n,c)=>(n.companies&&n.companies.length?n.companies:[n.company]).includes(c);
 
 function renderTimeline(){
@@ -272,7 +290,7 @@ function renderTimeline(){
   if(list.length>shown)html+=`<button class="more" id="more">Show ${Math.min(40,list.length-shown)} more</button>`;
   $("feed").innerHTML=html; const m=$("more"); if(m)m.onclick=()=>{shown+=40;renderTimeline();};
 }
-function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():mode==="stories"?renderStories():renderTech(); }
+function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():mode==="stories"?renderStories():mode==="peers"?renderPeers():mode==="calendar"?renderCalendar():renderTech(); }
 
 /* ---- technology ---- */
 let tech={};
@@ -313,6 +331,82 @@ function techDetail(c){
     ${box("Notable outages",(t.outages||[]).map(o=>`${esc(o.date)} — ${esc(o.description)}`).join("<br>"))}
   </div>${(t.sources||[]).length?`<div class="note" style="margin-top:6px">Sources: ${t.sources.slice(0,6).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}${t.updated?` · updated ${esc(t.updated)}`:""}</div>`:""}</div>`;
 }
+
+/* ---- currency, volumes, peers, calendar ---- */
+let fx={}, volumes={}, cal=[];
+const usd=(v,ccy)=>{ if(typeof v!=="number"||!isFinite(v))return null; if(ccy==="USD")return v; const r=fx.rates?.[ccy]; return typeof r==="number"&&r>0?v/r:null; };
+const pct=(v,d=0)=>v==null||!isFinite(v)?"—":`${(v*100).toFixed(d)}%`;
+const fmtVol=v=>{ if(typeof v!=="number")return "—"; const a=Math.abs(v); return a>=1e12?(v/1e12).toFixed(a>=1e13?1:2)+"trn":a>=1e9?(v/1e9).toFixed(a>=1e10?1:2)+"bn":a>=1e6?(v/1e6).toFixed(a>=1e7?1:2)+"m":a>=1e4?(v/1e3).toFixed(0)+"k":v.toLocaleString("en-US",{maximumFractionDigits:2}); };
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const monLabel=m=>`${MON[+m.slice(5,7)-1]} ${m.slice(2,4)}`;
+function volSeries(id,key){ const v=volumes[id]; if(!v)return []; return Object.keys(v.months||{}).sort().map(m=>({m,i:+m.slice(0,4)*12+ +m.slice(5,7),v:v.months[m]?.[key]})).filter(x=>typeof x.v==="number"); }
+function volYoY(pts){ if(!pts.length)return null; const last=pts.at(-1); const pm=`${+last.m.slice(0,4)-1}${last.m.slice(4)}`; const prev=pts.find(x=>x.m===pm); return prev&&prev.v>0?last.v/prev.v-1:null; }
+function sparkSVG(pts){ const end=pts.length?pts.at(-1).i:0, p=pts.filter(x=>x.i>end-13); if(p.length<2)return ""; const W=120,H=28,mx=Math.max(...p.map(x=>x.v)),mn=Math.min(...p.map(x=>x.v)),i0=p[0].i; const X=i=>3+(i-i0)*(W-6)/Math.max(1,end-i0),Y=v=>H-4-(mx>mn?(v-mn)/(mx-mn):.5)*(H-8);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="${monLabel(p[0].m)} to ${monLabel(p.at(-1).m)}"><polyline points="${p.map(x=>X(x.i).toFixed(1)+","+Y(x.v).toFixed(1)).join(" ")}"/><circle cx="${X(end).toFixed(1)}" cy="${Y(p.at(-1).v).toFixed(1)}" r="2.5"/></svg>`; }
+function volDetail(c){
+  const v=volumes[c.id]; if(!v||!(v.metrics||[]).length)return "";
+  let h="";
+  for(const mt of v.metrics.slice(0,3)){ const all=volSeries(c.id,mt.key); if(all.length<2)continue; const end=all.at(-1).i, pts=all.filter(x=>x.i>end-24), i0=pts[0].i, n=end-i0+1;
+    const W=600,H=120,L=44,R=8,T=8,B=20,iw=W-L-R,ih=H-T-B,mx=Math.max(...pts.map(x=>x.v))*1.08,bw=iw/n,y=q=>T+ih-q/mx*ih, yo=volYoY(all);
+    let g=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(mx/1.08)}" y2="${y(mx/1.08)}"/><text x="${L-6}" y="${y(mx/1.08)+3}" text-anchor="end">${fmtVol(mx/1.08)}</text><line class="grid" x1="${L}" x2="${W-R}" y1="${T+ih}" y2="${T+ih}"/><text x="${L-6}" y="${T+ih+3}" text-anchor="end">0</text>`;
+    pts.forEach(x=>{ const i=x.i-i0; g+=`<rect class="bar${x.i===end?" last":""}" x="${(L+i*bw+bw*.15).toFixed(1)}" y="${y(x.v).toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${Math.max(0,T+ih-y(x.v)).toFixed(1)}"><title>${monLabel(x.m)}: ${fmtVol(x.v)} ${esc(mt.unit||"")}</title></rect>`;
+      });
+    for(let i=n-1;i>=0;i-=3){ const mi=i0+i-1; g+=`<text x="${(L+i*bw+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle">${MON[mi%12]} ${String(Math.floor(mi/12)).slice(2)}</text>`; }
+    h+=`<div><div class="label" style="margin-bottom:4px">${esc(mt.label)} · ${esc(mt.unit||"")} · monthly</div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(mt.label)} by month">${g}</svg>
+      <div class="note">${monLabel(pts.at(-1).m)}: <b style="color:var(--ink)">${fmtVol(pts.at(-1).v)}</b>${yo!=null?` · ${yoy(yo*100)} vs a year earlier`:""}${pts.length<n?" · gaps are months not yet collected":""}</div></div>`; }
+  if(h&&(v.sources||[]).length)h+=`<div class="note">Volume sources: ${v.sources.slice(0,4).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}</div>`;
+  return h;
+}
+let peerSort={k:"rev",dir:-1};
+function peerRow(c){
+  const s=series[c.id]||{}, m=c.metrics||{}, a=(s.annual||[]).filter(r=>typeof r.revenue==="number"&&typeof r.year==="number").sort((x,y)=>x.year-y.year), last=a.at(-1), sh=avgShares(c.id);
+  const base=last?(a.find(r=>r.year===last.year-5)||null):null;
+  const mc=usd(m.market_cap,m.market_cap_ccy||m.currency), ni=last?usd(last.net_income,s.currency):null;
+  return {c,fy:last?.year??null,rev:last?usd(last.revenue,s.currency):null,cagr:base&&base.revenue>0?Math.pow(last.revenue/base.revenue,1/5)-1:null,yoy:typeof m.revenue_yoy==="number"?m.revenue_yoy/100:null,
+    ebitda:typeof m.ebitda_margin==="number"?m.ebitda_margin/100:typeof last?.ebitda_margin==="number"?last.ebitda_margin/100:null,
+    netm:last&&typeof last.net_income==="number"&&last.revenue>0?last.net_income/last.revenue:null,dt:sh?sh.dt:null,nii:sh?sh.nii:null,mcap:mc,pe:mc&&ni>0?mc/ni:null,name:(c.short||c.name||"").toLowerCase()};
+}
+const sortRows=(rows,k,dir)=>rows.sort((x,y)=>{const a=x[k],b=y[k]; if(a==null&&b==null)return 0; if(a==null)return 1; if(b==null)return -1; return typeof a==="string"?dir*a.localeCompare(b):dir*(a-b);});
+const PCOL=[["name","Company"],["fy","FY"],["rev","Revenue, USD"],["cagr","5y CAGR"],["yoy","Latest YoY"],["ebitda","EBITDA margin"],["netm","Net margin"],["dt","Data + tech"],["nii","NII share"],["mcap","Mkt cap, USD"],["pe","Mkt cap / net income"]];
+function renderPeers(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value;
+  const arr=Object.values(cos).filter(c=>(!seg||c.segment===seg)&&(!q||((c.name||"")+" "+(c.short||"")).toLowerCase().includes(q)));
+  const rows=sortRows(arr.map(peerRow).filter(r=>r.rev!=null||r.mcap!=null),peerSort.k,peerSort.dir);
+  $("ncount").textContent=`${rows.length} companies compared`;
+  if(!rows.length){$("feed").innerHTML='<div class="empty"><b>Nothing to compare yet</b>The comparison needs financial history and exchange rates; clear the filters or wait for the next update.</div>';return;}
+  const cell=(r,k)=>k==="name"?`<td class="co2" data-id="${esc(r.c.id)}" tabindex="0"><b>${esc(r.c.short||r.c.name)}</b></td>`:`<td class="num">${k==="fy"?(r.fy??"—"):k==="rev"||k==="mcap"?(r[k]==null?"—":"$"+fmtNum(r[k])):k==="pe"?(r.pe==null?"—":r.pe.toFixed(1)+"×"):k==="cagr"||k==="yoy"?(r[k]==null?"—":yoy(r[k]*100)):pct(r[k])}</td>`;
+  let html=`<div class="mlegend"><span>Latest full year, converted to US dollars at ${esc(fx.as_of||"current")} rates. Growth is as reported, not adjusted for acquisitions. Market caps are as of each company's last update. Click a heading to sort.</span></div>
+    <div class="peer techwrap"><table><thead><tr>${PCOL.map(([k,n])=>`<th class="srt${k==="name"?"":" num"}" data-k="${k}" tabindex="0"${peerSort.k===k?` aria-sort="${peerSort.dir>0?"ascending":"descending"}"`:""}>${n}${peerSort.k===k?(peerSort.dir>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${PCOL.map(([k])=>cell(r,k)).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const vr=arr.map(c=>{const mt=volumes[c.id]?.metrics?.[0]; if(!mt)return null; const pts=volSeries(c.id,mt.key); return pts.length?{c,mt,pts,yo:volYoY(pts)}:null;}).filter(Boolean).sort((a,b)=>(b.yo??-9)-(a.yo??-9));
+  if(vr.length){ html+=`<div class="grphead"><h4>Trading activity <span class="count">${vr.length}</span></h4><p>Each exchange's headline monthly volume: latest month, change on a year earlier, and the last 13 months. Units differ, so compare the growth rates.</p></div>`;
+    for(const {c,mt,pts,yo} of vr)html+=`<div class="volrow" tabindex="0" data-id="${esc(c.id)}"><b>${esc(c.short||c.name)}</b><span class="dim vm">${esc(mt.label)}</span><span class="lat vv">${fmtVol(pts.at(-1).v)} <span class="dim">${monLabel(pts.at(-1).m)}</span></span><span class="num">${yo==null?"—":yoy(yo*100)}</span>${sparkSVG(pts)}</div>`; }
+  $("feed").innerHTML=html;
+  $("feed").querySelectorAll("th.srt").forEach(th=>{const f=()=>{const k=th.dataset.k; peerSort=peerSort.k===k?{k,dir:-peerSort.dir}:{k,dir:k==="name"?1:-1}; renderPeers();}; th.onclick=f; th.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();f();}};});
+  $("feed").querySelectorAll(".co2,.volrow").forEach(el=>{const f=()=>select(el.dataset.id);el.onclick=f;el.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();f();}};});
+}
+const CTYPE={results:"Results",investor_day:"Investor day",agm:"AGM",dividend:"Dividend",volumes:"Volumes",other:"Other"};
+const isoDay=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const dayLabel=s=>{const d=new Date(s+"T12:00:00"); return isNaN(d)?esc(s):`${d.getDate()} ${MON[d.getMonth()]}<br>${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}`;};
+function calItem(e){ const ids=e.companies&&e.companies.length?e.companies:[e.company];
+  return `<article class="item"><div class="date">${dayLabel(e.date||"")}</div><div><div class="meta">${ids.filter(Boolean).map(c=>`<span class="tag">${esc(cos[c]?.short||c)}</span>`).join("")}<span class="ctype ${esc(e.type||"other")}">${esc(CTYPE[e.type]||e.type||"")}</span>${e.confirmed===false?'<span class="cat">expected, not confirmed</span>':""}</div>
+    <p class="hl">${esc(e.title)}</p>${e.note?`<p class="sum">${esc(e.note)}</p>`:""}${e.url?`<div class="src"><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.source||"Source")}</a></div>`:""}</div></article>`; }
+function renderCalendar(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value, today=isoDay(new Date()), back=isoDay(new Date(Date.now()-14*864e5));
+  const list=cal.filter(e=>{const ids=e.companies&&e.companies.length?e.companies:[e.company];
+    if(selCo&&!ids.includes(selCo))return false; if(seg&&!ids.some(c=>cos[c]?.segment===seg))return false;
+    if(q&&!((e.title||"")+" "+ids.map(c=>cos[c]?.name||c).join(" ")).toLowerCase().includes(q))return false; return (e.date||"")>=back;});
+  const up=list.filter(e=>e.date>=today), past=list.filter(e=>e.date<today).reverse();
+  $("ncount").textContent=`${up.length} upcoming`;
+  if(!cal.length){$("feed").innerHTML='<div class="empty"><b>No dates collected yet</b>Update runs add results dates, investor days and shareholder meetings as companies announce them.</div>';return;}
+  if(!list.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search, segment or company selection.</div>';return;}
+  let html="",mo="";
+  for(const e of up){ const k=e.date.slice(0,7); if(k!==mo){mo=k;html+=`<div class="yr">${MON[+k.slice(5)-1]} ${k.slice(0,4)}</div>`;} html+=calItem(e); }
+  if(!up.length)html+='<div class="empty"><b>No upcoming dates</b>Nothing is scheduled for this selection yet.</div>';
+  if(past.length){html+='<div class="yr">Last two weeks</div>'+past.map(calItem).join("");}
+  $("feed").innerHTML=html;
+}
+function nextEvent(id){ const today=isoDay(new Date()); const e=cal.find(x=>x.date>=today&&((x.companies&&x.companies.length?x.companies:[x.company]).includes(id))); if(!e)return "";
+  const d=new Date(e.date+"T12:00:00"); return `<div class="nextev"><span class="label">Next date</span> &nbsp;<b>${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}</b> · ${esc(e.title)}${e.confirmed===false?' <span class="dim">(expected)</span>':""}</div>`; }
 
 /* ---- investment stories ---- */
 let story={};
@@ -519,10 +613,15 @@ function renderFeed(){
     if(q&&!((n.headline||"")+" "+(n.summary||"")).toLowerCase().includes(q))return false;
     return true;
   });
+  let digest="";
+  if(week&&news.length){ const ref=new Date((news[0].date||isoDay(new Date()))+"T12:00:00"), cut=isoDay(new Date(ref.getTime()-7*864e5)), rank={high:0,medium:1,low:2};
+    list=list.filter(n=>(n.date||"")>cut).sort((a,b)=>(rank[a.materiality]??3)-(rank[b.materiality]??3)||(b.date||"").localeCompare(a.date||""));
+    const hi=list.filter(n=>n.materiality==="high").length, cs=new Set(list.flatMap(n=>n.companies||[n.company]));
+    digest=`<div class="digest"><b>Week to ${esc(news[0].date)}:</b> ${list.length} item${list.length===1?"":"s"} on ${cs.size} compan${cs.size===1?"y":"ies"}, <b>${hi}</b> high-materiality. Most important first.</div>`; }
   $("ncount").textContent=list.length+" item"+(list.length===1?"":"s");
   if(!news.length)return;
   if(!list.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search or widen the filters.</div>';return;}
-  $("feed").innerHTML=list.slice(0,shown).map(n=>{
+  $("feed").innerHTML=digest+list.slice(0,shown).map(n=>{
     const tags=(n.companies||[n.company]).filter(Boolean).map(c=>`<span class="tag">${esc(cos[c]?.short||cos[c]?.name||c)}</span>`).join("");
     const d=(n.date||"").slice(5).replace("-","/");
     return `<article class="item"><div class="date">${esc(d)}<br>${esc((n.date||"").slice(0,4))}</div><div>
@@ -538,16 +637,17 @@ function renderReg(){
   const arr=Object.values(cos); $("ccount").textContent=arr.length+" companies";
   if(!arr.length)return;
   const order=["exchange","em_exchange","post_trade","data_index"];
+  const row=c=>{ const m=c.metrics||{}; return `<tr class="co${selCo===c.id?" sel":""}" tabindex="0" data-id="${esc(c.id)}"><td><div class="nm">${esc(c.name)}</div><div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")}</div></td>
+      <td class="num">${esc(m.period||"—")}</td><td class="num">${money(m.revenue,m.currency)}</td><td class="num">${yoy(m.revenue_yoy)}</td><td class="num">${money(m.market_cap,m.market_cap_ccy||m.currency)}</td></tr>`; };
   let html="";
-  for(const s of order){
+  if(regSort){ const key=c=>{const m=c.metrics||{}; return regSort.k==="name"?(c.name||"").toLowerCase():regSort.k==="rev"?usd(m.revenue,m.currency):regSort.k==="yoy"?(typeof m.revenue_yoy==="number"?m.revenue_yoy:null):usd(m.market_cap,m.market_cap_ccy||m.currency);};
+    html=sortRows(arr.map(c=>({c,v:key(c)})),"v",regSort.dir).map(x=>row(x.c)).join(""); }
+  else for(const s of order){
     const g=arr.filter(c=>c.segment===s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
     if(!g.length)continue;
-    html+=`<tr class="grp"><td colspan="5">${esc(SEG[s])}</td></tr>`;
-    for(const c of g){ const m=c.metrics||{};
-      html+=`<tr class="co${selCo===c.id?" sel":""}" tabindex="0" data-id="${esc(c.id)}"><td><div class="nm">${esc(c.name)}</div><div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")}</div></td>
-      <td class="num">${esc(m.period||"—")}</td><td class="num">${money(m.revenue,m.currency)}</td><td class="num">${yoy(m.revenue_yoy)}</td><td class="num">${money(m.market_cap,m.market_cap_ccy||m.currency)}</td></tr>`;
-    }
+    html+=`<tr class="grp"><td colspan="5">${esc(SEG[s])}</td></tr>`+g.map(row).join("");
   }
+  $("reghead").querySelectorAll("th.srt").forEach(th=>{ const on=regSort&&regSort.k===th.dataset.k; if(!th.dataset.n)th.dataset.n=th.textContent; th.textContent=th.dataset.n+(on?(regSort.dir>0?" ▲":" ▼"):""); on?th.setAttribute("aria-sort",regSort.dir>0?"ascending":"descending"):th.removeAttribute("aria-sort"); });
   $("reg").innerHTML=html;
   $("reg").querySelectorAll(".co").forEach(r=>{const f=()=>select(r.dataset.id);r.onclick=f;r.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
 }
@@ -562,27 +662,35 @@ function select(id){
     d.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h3>${esc(c.name)}</h3><button class="btn" id="clr">Show all news</button></div>
       <div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")} · ${esc(SEG[c.segment]||"")}</div>
       ${c.profile?`<p style="margin:0">${esc(c.profile)}</p>`:""}
+      ${nextEvent(c.id)}
       ${modelDetail(c)}
       ${storyDetail(c)}
       ${techDetail(c)}
       <div class="kv">${kv.map(([k,v])=>`<div><span class="label">${k}</span><span class="v">${v}</span></div>`).join("")}</div>
       ${c.last_updated?`<div class="note">Figures last updated ${esc(c.last_updated)}${m.source?` · ${esc(m.source)}`:""}</div>`:""}
+      ${volDetail(c)}
       ${series[c.id]?annualChart(series[c.id])+quarterTable(series[c.id])+(series[c.id].note?`<div class="note">${esc(series[c.id].note)}</div>`:""):`<div class="note">Financial history appears here once the backfill reaches this company.</div>`}
       ${coTimeline(c.id)}`;
     d.hidden=false; $("clr").onclick=()=>select(selCo);
   }
-  renderReg(); render();
+  writeHash(); renderReg(); render();
 }
 
 $("q").addEventListener("input",()=>{shown=40;render();});
 $("seg").addEventListener("change",()=>{shown=40;render();});
 $("cat").addEventListener("change",()=>{shown=40;render();});
-document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const m=b.dataset.m; mats.has(m)?mats.delete(m):mats.add(m); b.setAttribute("aria-pressed",mats.has(m)); shown=40; renderFeed();});
-function setMode(m){mode=m;shown=40;$("t-news").setAttribute("aria-selected",m==="news");$("t-tl").setAttribute("aria-selected",m==="timeline");$("t-bm").setAttribute("aria-selected",m==="models");$("t-tech").setAttribute("aria-selected",m==="tech");$("t-st").setAttribute("aria-selected",m==="stories");$("chips").hidden=m!=="news";$("cat").hidden=m==="models"||m==="tech"||m==="stories";
+document.querySelectorAll(".chip[data-m]").forEach(b=>b.onclick=()=>{const m=b.dataset.m; mats.has(m)?mats.delete(m):mats.add(m); b.setAttribute("aria-pressed",mats.has(m)); shown=40; renderFeed();});
+$("wk").onclick=()=>{week=!week;$("wk").setAttribute("aria-pressed",week);shown=40;renderFeed();};
+$("reghead").querySelectorAll("th.srt").forEach(th=>{const f=()=>{const k=th.dataset.k; regSort=!regSort||regSort.k!==k?{k,dir:k==="name"?1:-1}:regSort.dir===(k==="name"?1:-1)?{k,dir:-regSort.dir}:null; renderReg();}; th.onclick=f; th.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+const TABS={news:"t-news",timeline:"t-tl",models:"t-bm",tech:"t-tech",stories:"t-st",peers:"t-pe",calendar:"t-cal"};
+function writeHash(){ try{ const p=new URLSearchParams(); if(mode!=="news")p.set("tab",mode); if(selCo)p.set("co",selCo); const h=p.toString(); history.replaceState(null,"",h?"#"+h:location.pathname+location.search); }catch(e){} }
+function setMode(m){mode=m;shown=40;for(const [k,id] of Object.entries(TABS))$(id).setAttribute("aria-selected",k===m);$("chips").hidden=m!=="news";$("cat").hidden=m!=="news"&&m!=="timeline";
+  $("q").placeholder=m==="news"||m==="timeline"?"Search headlines and summaries":"Search companies";
   if(m==="news"&&!news.length){$("feed").innerHTML='<div class="empty"><b>No news collected yet</b>The first update run fills this tape with recent items for every company in coverage.</div>';$("ncount").textContent="";}
-  render();}
-$("t-news").onclick=()=>setMode("news"); $("t-tl").onclick=()=>setMode("timeline"); $("t-bm").onclick=()=>setMode("models"); $("t-tech").onclick=()=>setMode("tech"); $("t-st").onclick=()=>setMode("stories");
-const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{renderReg();render();}};
+  writeHash(); render();}
+for(const [k,id] of Object.entries(TABS))$(id).onclick=()=>setMode(k);
+try{ const H=new URLSearchParams((location.hash||"").slice(1)); pendingCo=H.get("co"); if(TABS[H.get("tab")]){mode=H.get("tab");for(const [k,id] of Object.entries(TABS))$(id).setAttribute("aria-selected",k===mode);$("chips").hidden=true;$("cat").hidden=mode!=="timeline";} }catch(e){}
+const refreshDetail=()=>{if(pendingCo&&cos[pendingCo]){const k=pendingCo;pendingCo=null;selCo=null;select(k);return;}if(selCo){const k=selCo;selCo=null;select(k);}else{renderReg();render();}};
 
 (async()=>{
   const st=$("status");
@@ -596,7 +704,8 @@ const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{rend
       const byDate=(a,b)=>(b.date||"").localeCompare(a.date||"");
       news=ent(S.news).map(([k,v])=>({id:k,...v})).sort(byDate);
       events=ent(S.events).map(([k,v])=>({id:k,...v})).sort(byDate);
-      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{}; story=S.story||{};
+      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{}; story=S.story||{}; volumes=S.volumes||{}; fx=S.fx||{};
+      cal=ent(S.calendar).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
       const v=S.status||{};
       $("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;
       st.textContent=`Read-only snapshot (as of ${S.exported_at||v.last_run||"the last update"}). Sign in to claude.ai for the live view.`;st.hidden=false;
@@ -608,9 +717,13 @@ const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{rend
   db.collection("companies").onSnapshot(s=>{cos={};s.docs.forEach(d=>{cos[d.id]={id:d.id,...d.data()};});refreshDetail();done(s);},fail);
   db.collection("news").orderBy("date","desc").limit(1000).onSnapshot(s=>{news=s.docs.map(d=>({id:d.id,...d.data()}));if(mode==="news")renderFeed();done(s);},fail);
   db.collection("events").orderBy("date","desc").limit(1000).onSnapshot(s=>{events=s.docs.map(d=>({id:d.id,...d.data()}));if(mode==="timeline")renderTimeline();if(selCo)refreshDetail();},()=>{});
-  db.collection("series").onSnapshot(s=>{series={};s.docs.forEach(d=>{series[d.id]=d.data();});if(selCo)refreshDetail();},()=>{});
+  const upd=(...m)=>{if(selCo)refreshDetail();else if(m.includes(mode))render();};
+  db.collection("series").onSnapshot(s=>{series={};s.docs.forEach(d=>{series[d.id]=d.data();});upd("peers");},()=>{});
+  db.collection("volumes").onSnapshot(s=>{volumes={};s.docs.forEach(d=>{volumes[d.id]=d.data();});upd("peers");},()=>{});
+  db.collection("calendar").orderBy("date","asc").limit(1000).onSnapshot(s=>{cal=s.docs.map(d=>({id:d.id,...d.data()}));upd("calendar");},()=>{});
+  db.doc("meta/fx").onSnapshot(s=>{fx=s.exists?s.data():{};renderReg();upd("peers");},()=>{});
   db.collection("tech").onSnapshot(s=>{tech={};s.docs.forEach(d=>{tech[d.id]=d.data();});if(mode==="tech")renderTech();if(selCo)refreshDetail();},()=>{});
-  db.collection("mix").onSnapshot(s=>{mix={};s.docs.forEach(d=>{mix[d.id]=d.data();});if(mode==="models"||mode==="stories")render();if(selCo)refreshDetail();},()=>{});
+  db.collection("mix").onSnapshot(s=>{mix={};s.docs.forEach(d=>{mix[d.id]=d.data();});upd("models","stories","peers");},()=>{});
   db.collection("story").onSnapshot(s=>{story={};s.docs.forEach(d=>{story[d.id]=d.data();});if(mode==="stories")renderStories();if(selCo)refreshDetail();},()=>{});
   db.doc("meta/status").onSnapshot(s=>{if(!s.exists)return;const v=s.data();$("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;},()=>{});
 })();

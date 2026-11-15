@@ -1,0 +1,19 @@
+name: Validate data and page
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Previous snapshot
+        run: git show HEAD~1:data.json > /tmp/prev.json || echo '{}' > /tmp/prev.json
+      - name: Check data.json and index.html
+        run: python3 scripts/validate.py data.json --prev /tmp/prev.json --page index.html
+      - name: Check page script parses
+        run: |
+          node -e "const s=require('fs').readFileSync('index.html','utf8');new Function(s.match(/<script>([\s\S]*)<\/script>/)[1]);"
