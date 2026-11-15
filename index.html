@@ -152,6 +152,22 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
 .techgrid > div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
 .techgrid h5{margin:0 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .techgrid p{margin:0;font-size:12.5px}
+.strow{display:grid;grid-template-columns:150px minmax(0,1fr) 120px;gap:10px;align-items:start;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
+.strow:hover{background:var(--accent-soft)}
+.strow .nm{font-size:13px}
+.strow .sub2{font-size:11px;color:var(--muted)}
+.strow .th{margin:0 0 4px;font-size:12.5px;max-width:70ch}
+.tgt{display:inline-block;font-size:11px;font-family:var(--f-mono);border:1px solid var(--line);border-radius:4px;padding:0 6px;margin:0 4px 3px 0;color:var(--ink)}
+.st{display:inline-block;font-size:10.5px;font-weight:600;padding:0 6px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
+.st.on_track,.st.ahead,.st.met{background:var(--open);color:var(--surface)}
+.st.behind{background:var(--med-soft);color:var(--med)}
+.st.missed{background:var(--high-soft);color:var(--high)}
+.st.withdrawn,.st.replaced{background:var(--low-soft);color:var(--low)}
+.st.new{background:var(--accent-soft);color:var(--accent)}
+.mism{color:var(--high);font-weight:600}
+.pillars{margin:0;padding-left:18px;font-size:12.5px}
+.pillars li{margin-bottom:3px}
+@media (max-width:520px){.strow{grid-template-columns:minmax(0,1fr) 96px}.strow .mid{grid-column:1/-1;grid-row:2}}
 @media (max-width:520px){.bmrow{grid-template-columns:minmax(0,1fr) 80px}.bmrow .mixbar{grid-column:1/-1;grid-row:2}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -174,7 +190,7 @@ tr.grp td{background:var(--bg);font-size:11px;letter-spacing:.08em;text-transfor
 
   <div class="desk">
     <section aria-labelledby="newsh">
-      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button></div><span class="count" id="ncount"></span></div>
+      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button><button class="tab" role="tab" id="t-st" aria-selected="false">Investment stories</button></div><span class="count" id="ncount"></span></div>
       <div class="filters">
         <input type="search" id="q" placeholder="Search headlines and summaries" aria-label="Search news">
         <select id="seg" aria-label="Segment">
@@ -256,7 +272,7 @@ function renderTimeline(){
   if(list.length>shown)html+=`<button class="more" id="more">Show ${Math.min(40,list.length-shown)} more</button>`;
   $("feed").innerHTML=html; const m=$("more"); if(m)m.onclick=()=>{shown+=40;renderTimeline();};
 }
-function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():renderTech(); }
+function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():mode==="stories"?renderStories():renderTech(); }
 
 /* ---- technology ---- */
 let tech={};
@@ -296,6 +312,65 @@ function techDetail(c){
     ${box("Technology sold to others",t.tech_business?esc(t.tech_business):"")}
     ${box("Notable outages",(t.outages||[]).map(o=>`${esc(o.date)} — ${esc(o.description)}`).join("<br>"))}
   </div>${(t.sources||[]).length?`<div class="note" style="margin-top:6px">Sources: ${t.sources.slice(0,6).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}${t.updated?` · updated ${esc(t.updated)}`:""}</div>`:""}</div>`;
+}
+
+/* ---- investment stories ---- */
+let story={};
+const STY=[
+  ["data_compounder","Data & software compounder","Pitched as a recurring-revenue data, index or software business, valued against information-services peers."],
+  ["diversified_fmi","Diversified market infrastructure","Balanced growth across trading, post-trade and data; secular growth with a cyclical kicker."],
+  ["volume_play","Volume & volatility franchise","Earnings driven by trading activity; the pitch is operating leverage, new products and cash returns."],
+  ["em_growth_yield","Emerging-market growth & yield","Financialisation of a domestic market (retail investors, new products) plus a high payout."],
+  ["consolidator","Consolidator & integrator","Growth from acquisitions, integration synergies and cross-selling across venues."],
+  ["post_trade_utility","Post-trade & processing utility","Growth in accounts, assets or processed volumes; steady recurring fees."],
+  ["reset","Reset & turnaround","Rebuilding after a shock: technology failure, sanctions, regulatory action or a strategy break."]];
+const SNAME=Object.fromEntries(STY.map(a=>[a[0],a[1]]));
+const TST={on_track:"on track",ahead:"ahead",met:"met",behind:"behind",missed:"missed",withdrawn:"withdrawn",replaced:"replaced",new:"new"};
+const FIT={data_compounder:["data_led","pure_data"],volume_play:["derivatives_led","trading_led","vertical"],post_trade_utility:["ccp","csd","utility"]};
+const stPill=s=>s?`<span class="st ${esc(s)}">${esc(TST[s]||s)}</span>`:"";
+function storyFit(c){ const t=story[c.id]; if(!t?.archetype||!FIT[t.archetype])return null; const cur=current(c); if(!cur.s)return null; return FIT[t.archetype].includes(cur.arch); }
+const listed=c=>c.model?.ownership==="listed"||!!story[c.id];
+function renderStories(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value;
+  const arr=Object.values(cos).filter(c=>listed(c)&&(!seg||c.segment===seg)&&(!q||((c.name||"")+" "+(c.short||"")+" "+JSON.stringify(story[c.id]||{})).toLowerCase().includes(q)));
+  const done=arr.filter(c=>story[c.id]).length;
+  $("ncount").textContent=`${arr.length} listed companies · ${done} with a story`;
+  if(!done){$("feed").innerHTML='<div class="empty"><b>No investment stories yet</b>Research runs add each listed company\'s equity story: thesis, growth pillars, medium-term targets and capital return, from its latest capital markets day or investor presentation.</div>';return;}
+  let html=`<div class="mlegend"><span>Target status:</span>${["on_track","ahead","behind","missed","withdrawn","new"].map(stPill).join("")}<span><b class="mism">≠ mix</b> story differs from the business model the revenue mix shows</span></div>`;
+  for(const [key,label,test] of STY){
+    const g=arr.filter(c=>story[c.id]?.archetype===key).sort((a,b)=>(a.short||a.name).localeCompare(b.short||b.name));
+    if(!g.length)continue;
+    html+=`<div class="grphead"><h4>${esc(label)} <span class="count">${g.length}</span></h4><p>${esc(test)}</p></div>`;
+    for(const c of g){ const t=story[c.id], fit=storyFit(c), tg=t.targets||[];
+      const cnt={}; tg.forEach(x=>{if(x.status)cnt[x.status]=(cnt[x.status]||0)+1;});
+      html+=`<div class="strow" tabindex="0" data-id="${esc(c.id)}"><div><div class="nm">${esc(c.short||c.name)}</div><div class="sub2">${esc(t.source_event?.name||"")}${t.source_event?.date?` · ${esc(t.source_event.date)}`:""}</div>${fit===false?'<div class="sub2 mism">≠ mix</div>':""}</div>
+        <div class="mid"><p class="th">${esc(t.thesis||"")}</p>${tg.slice(0,3).map(x=>`<span class="tgt" title="${esc((x.horizon||"")+(x.note?" · "+x.note:""))}">${esc(x.metric)}: ${esc(x.target)}</span>`).join("")}</div>
+        <div class="flags">${t.capital_return?.payout_ratio?`Payout <b>${esc(t.capital_return.payout_ratio)}</b><br>`:""}${Object.entries(cnt).map(([k,v])=>`${v} ${esc(TST[k]||k)}`).join("<br>")}</div></div>`;
+    }
+  }
+  const none=arr.filter(c=>!story[c.id]);
+  if(none.length)html+=`<div class="grphead"><h4>Story pending <span class="count">${none.length}</span></h4><p>${none.map(c=>esc(c.short||c.name)).join(" · ")}</p></div>`;
+  $("feed").innerHTML=html;
+  $("feed").querySelectorAll(".strow").forEach(r=>{const f=()=>select(r.dataset.id);r.onclick=f;r.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+}
+function storyDetail(c){
+  const t=story[c.id]; if(!t)return "";
+  const cur=current(c), fit=storyFit(c), cr=t.capital_return||{};
+  const chips=[["Story",SNAME[t.archetype]||t.archetype||"—"],["Model",ANAME[cur.arch]||"—"]];
+  let h=`<div><div class="label" style="margin-bottom:6px">Investment story${t.source_event?.name?` · ${t.source_event.url?`<a href="${esc(t.source_event.url)}" target="_blank" rel="noopener" style="color:var(--accent);text-transform:none;letter-spacing:0">${esc(t.source_event.name)}</a>`:esc(t.source_event.name)}${t.source_event.date?` (${esc(t.source_event.date)})`:""}`:""}</div>
+    ${t.thesis?`<p style="margin:0 0 8px">${esc(t.thesis)}</p>`:""}
+    <div class="chiprow">${chips.map(([k,v])=>`<span class="mchip">${esc(k)} <b>${esc(v)}</b></span>`).join("")}${fit===false?'<span class="mchip mism">story ≠ revenue mix</span>':""}</div>
+    ${t.archetype_note?`<div class="note" style="margin-top:4px">${esc(t.archetype_note)}</div>`:""}</div>`;
+  if((t.pillars||[]).length)h+=`<div><div class="label" style="margin-bottom:4px">Growth pillars</div><ul class="pillars">${t.pillars.map(p=>`<li><b>${esc(p.title)}</b>${p.description?` — ${esc(p.description)}`:""}</li>`).join("")}</ul></div>`;
+  if((t.targets||[]).length)h+=`<div class="mini"><div class="label" style="margin-bottom:4px">Medium-term targets</div><table><thead><tr><th>Metric</th><th>Target</th><th>Horizon</th><th>Baseline</th><th>Status</th></tr></thead><tbody>${t.targets.map(x=>`<tr><td>${esc(x.metric)}</td><td>${esc(x.target)}</td><td>${esc(x.horizon||"—")}</td><td>${esc(x.baseline||"—")}</td><td>${stPill(x.status)||"—"}${x.note?`<div class="dim" style="font-size:11px">${esc(x.note)}</div>`:""}</td></tr>`).join("")}</tbody></table></div>`;
+  const box=(k,v)=>v?`<div><h5>${esc(k)}</h5><p>${v}</p></div>`:"";
+  const g=[box("Capital return",[cr.policy,cr.payout_ratio?`Payout: ${cr.payout_ratio}`:"",cr.buyback?`Buybacks: ${cr.buyback}`:""].filter(Boolean).map(esc).join("<br>")),
+    box("KPIs management leads with",(t.kpis_emphasised||[]).map(esc).join(" · ")),
+    box("Peer positioning",esc(t.peer_positioning||""))].join("");
+  if(g)h+=`<div class="techgrid">${g}</div>`;
+  if((t.history||[]).length)h+=`<div><div class="label" style="margin-bottom:6px">How the story changed</div><div class="tl">${t.history.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(x=>`<div><span class="d">${esc(x.date)}</span> <b>${esc(x.event)}</b>${x.change?` — ${esc(x.change)}`:""}</div>`).join("")}</div></div>`;
+  if((t.sources||[]).length)h+=`<div class="note">Sources: ${t.sources.slice(0,6).map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}${t.updated?` · updated ${esc(t.updated)}`:""}</div>`;
+  return h;
 }
 
 /* ---- business-model taxonomy ---- */
@@ -488,6 +563,7 @@ function select(id){
       <div class="tk">${esc(c.ticker||"unlisted")} · ${esc(c.country||"")} · ${esc(SEG[c.segment]||"")}</div>
       ${c.profile?`<p style="margin:0">${esc(c.profile)}</p>`:""}
       ${modelDetail(c)}
+      ${storyDetail(c)}
       ${techDetail(c)}
       <div class="kv">${kv.map(([k,v])=>`<div><span class="label">${k}</span><span class="v">${v}</span></div>`).join("")}</div>
       ${c.last_updated?`<div class="note">Figures last updated ${esc(c.last_updated)}${m.source?` · ${esc(m.source)}`:""}</div>`:""}
@@ -502,10 +578,10 @@ $("q").addEventListener("input",()=>{shown=40;render();});
 $("seg").addEventListener("change",()=>{shown=40;render();});
 $("cat").addEventListener("change",()=>{shown=40;render();});
 document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{const m=b.dataset.m; mats.has(m)?mats.delete(m):mats.add(m); b.setAttribute("aria-pressed",mats.has(m)); shown=40; renderFeed();});
-function setMode(m){mode=m;shown=40;$("t-news").setAttribute("aria-selected",m==="news");$("t-tl").setAttribute("aria-selected",m==="timeline");$("t-bm").setAttribute("aria-selected",m==="models");$("t-tech").setAttribute("aria-selected",m==="tech");$("chips").hidden=m!=="news";$("cat").hidden=m==="models"||m==="tech";
+function setMode(m){mode=m;shown=40;$("t-news").setAttribute("aria-selected",m==="news");$("t-tl").setAttribute("aria-selected",m==="timeline");$("t-bm").setAttribute("aria-selected",m==="models");$("t-tech").setAttribute("aria-selected",m==="tech");$("t-st").setAttribute("aria-selected",m==="stories");$("chips").hidden=m!=="news";$("cat").hidden=m==="models"||m==="tech"||m==="stories";
   if(m==="news"&&!news.length){$("feed").innerHTML='<div class="empty"><b>No news collected yet</b>The first update run fills this tape with recent items for every company in coverage.</div>';$("ncount").textContent="";}
   render();}
-$("t-news").onclick=()=>setMode("news"); $("t-tl").onclick=()=>setMode("timeline"); $("t-bm").onclick=()=>setMode("models"); $("t-tech").onclick=()=>setMode("tech");
+$("t-news").onclick=()=>setMode("news"); $("t-tl").onclick=()=>setMode("timeline"); $("t-bm").onclick=()=>setMode("models"); $("t-tech").onclick=()=>setMode("tech"); $("t-st").onclick=()=>setMode("stories");
 const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{renderReg();render();}};
 
 (async()=>{
@@ -520,7 +596,7 @@ const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{rend
       const byDate=(a,b)=>(b.date||"").localeCompare(a.date||"");
       news=ent(S.news).map(([k,v])=>({id:k,...v})).sort(byDate);
       events=ent(S.events).map(([k,v])=>({id:k,...v})).sort(byDate);
-      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{};
+      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{}; story=S.story||{};
       const v=S.status||{};
       $("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;
       st.textContent=`Read-only snapshot (as of ${S.exported_at||v.last_run||"the last update"}). Sign in to claude.ai for the live view.`;st.hidden=false;
@@ -534,7 +610,8 @@ const refreshDetail=()=>{if(selCo){const k=selCo;selCo=null;select(k);}else{rend
   db.collection("events").orderBy("date","desc").limit(1000).onSnapshot(s=>{events=s.docs.map(d=>({id:d.id,...d.data()}));if(mode==="timeline")renderTimeline();if(selCo)refreshDetail();},()=>{});
   db.collection("series").onSnapshot(s=>{series={};s.docs.forEach(d=>{series[d.id]=d.data();});if(selCo)refreshDetail();},()=>{});
   db.collection("tech").onSnapshot(s=>{tech={};s.docs.forEach(d=>{tech[d.id]=d.data();});if(mode==="tech")renderTech();if(selCo)refreshDetail();},()=>{});
-  db.collection("mix").onSnapshot(s=>{mix={};s.docs.forEach(d=>{mix[d.id]=d.data();});if(mode==="models")renderModels();if(selCo)refreshDetail();},()=>{});
+  db.collection("mix").onSnapshot(s=>{mix={};s.docs.forEach(d=>{mix[d.id]=d.data();});if(mode==="models"||mode==="stories")render();if(selCo)refreshDetail();},()=>{});
+  db.collection("story").onSnapshot(s=>{story={};s.docs.forEach(d=>{story[d.id]=d.data();});if(mode==="stories")renderStories();if(selCo)refreshDetail();},()=>{});
   db.doc("meta/status").onSnapshot(s=>{if(!s.exists)return;const v=s.data();$("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;},()=>{});
 })();
 })();
