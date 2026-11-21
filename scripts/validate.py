@@ -16,7 +16,9 @@ CTYPE = {"results", "investor_day", "agm", "dividend", "volumes", "other"}
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MONTH = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 REQUIRED = ["companies", "news", "events", "series", "tech", "mix"]
-OPTIONAL = ["story", "volumes", "calendar"]
+OPTIONAL = ["story", "volumes", "calendar", "instruments"]
+ICLASS = {"listed_companies", "etfs", "funds", "reits", "bonds", "structured"}
+DCLASS = {"equity", "rates", "fx", "commodity", "other"}
 PAGE_MARKERS = ["<title>Exchange Sector Monitor</title>", 'claude?.use?.("db")', 'fetch("data.json"']
 
 errors, warnings = [], []
@@ -79,7 +81,7 @@ def check(d):
         if key in seen:
             warn(f"events/{k}: same date, company and category as events/{seen[key]} (possible duplicate)")
         seen[key] = k
-    for coll in ("series", "mix", "tech", "story", "volumes"):
+    for coll in ("series", "mix", "tech", "story", "volumes", "instruments"):
         for k in d.get(coll, {}):
             if k not in co:
                 err(f"{coll}/{k}: no such company")
@@ -124,6 +126,22 @@ def check(d):
                     err(f"volumes/{k}: {mth} has unknown metric {kk!r}")
                 if not isnum(val) or val < 0:
                     err(f"volumes/{k}: {mth} {kk} is not a positive number")
+    for k, t in d.get("instruments", {}).items():
+        for c, x in (t.get("counts") or {}).items():
+            if c not in ICLASS:
+                err(f"instruments/{k}: unknown class {c!r}")
+            elif not isinstance(x, dict) or not isnum(x.get("count")) or x["count"] < 0:
+                err(f"instruments/{k}: {c} needs a non-negative count")
+        for g, v in (t.get("derivatives") or {}).items():
+            if g not in DCLASS:
+                err(f"instruments/{k}: unknown derivatives class {g!r}")
+            elif not isinstance(v, dict) or set(v) - {"futures", "options"}:
+                err(f"instruments/{k}: derivatives.{g} must hold futures and/or options")
+            elif any(x is not None and (not isnum(x) or x < 0) for x in v.values()):
+                err(f"instruments/{k}: derivatives.{g} volumes must be positive numbers or null")
+        for e in t.get("extra") or []:
+            if not e.get("label"):
+                err(f"instruments/{k}: extra entry without a label")
     for k, e in d.get("calendar", {}).items():
         if not DATE.match(str(e.get("date", ""))):
             err(f"calendar/{k}: bad date")
@@ -147,7 +165,7 @@ def check(d):
 
 def check_prev(d, prev):
     """A run should add to the knowledge base, not shrink it."""
-    limits = {"companies": 0.0, "events": 0.02, "series": 0.0, "tech": 0.0, "mix": 0.0, "story": 0.0, "volumes": 0.0, "news": 0.2}
+    limits = {"instruments": 0.0, "companies": 0.0, "events": 0.02, "series": 0.0, "tech": 0.0, "mix": 0.0, "story": 0.0, "volumes": 0.0, "news": 0.2}
     for k, tol in limits.items():
         a, b = len(prev.get(k) or {}), len(d.get(k) or {})
         if a and b < a * (1 - tol):

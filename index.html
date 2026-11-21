@@ -183,6 +183,20 @@ th.srt[aria-sort]{color:var(--ink)}
 .digest{padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12.5px}
 .digest b{font-weight:600}
 .nextev{font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+/* instruments matrix: one sequential hue, log-scaled within each column */
+.instwrap{overflow-x:auto}
+.instwrap table{font-size:12px;min-width:860px}
+.instwrap th,.instwrap td{padding:6px 7px}
+.instwrap td.d{white-space:nowrap}
+.instwrap th{white-space:normal;vertical-align:bottom}
+.instwrap td.c{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.instwrap th.gh{text-align:center;border-bottom:1px solid var(--line)}
+.instwrap td.sep,.instwrap th.sep{border-left:2px solid var(--line)}
+.fo{display:inline-block;min-width:16px;font-size:10px;font-weight:600;padding:0 4px;border-radius:3px;margin-right:2px;text-align:center;background:var(--accent);color:var(--surface)}
+.fo.nv{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.igrid > div{border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-width:0}
+.igrid .v{font-family:var(--f-mono);font-size:15px}
 @media (max-width:520px){.volrow{grid-template-columns:minmax(0,1fr) 70px 124px}.volrow .vm,.volrow .vv{display:none}}
 @media (max-width:520px){.strow{grid-template-columns:minmax(0,1fr) 96px}.strow .mid{grid-column:1/-1;grid-row:2}}
 @media (max-width:520px){.bmrow{grid-template-columns:minmax(0,1fr) 80px}.bmrow .mixbar{grid-column:1/-1;grid-row:2}}
@@ -207,7 +221,7 @@ th.srt[aria-sort]{color:var(--ink)}
 
   <div class="desk">
     <section aria-labelledby="newsh">
-      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button><button class="tab" role="tab" id="t-st" aria-selected="false">Investment stories</button><button class="tab" role="tab" id="t-pe" aria-selected="false">Peers</button><button class="tab" role="tab" id="t-cal" aria-selected="false">Calendar</button></div><span class="count" id="ncount"></span></div>
+      <div class="panehead"><div class="tabs" role="tablist" id="newsh"><button class="tab" role="tab" id="t-news" aria-selected="true">News tape</button><button class="tab" role="tab" id="t-tl" aria-selected="false">Timeline since 2015</button><button class="tab" role="tab" id="t-bm" aria-selected="false">Business models</button><button class="tab" role="tab" id="t-tech" aria-selected="false">Technology</button><button class="tab" role="tab" id="t-st" aria-selected="false">Investment stories</button><button class="tab" role="tab" id="t-pe" aria-selected="false">Peers</button><button class="tab" role="tab" id="t-cal" aria-selected="false">Calendar</button><button class="tab" role="tab" id="t-in" aria-selected="false">Instruments</button></div><span class="count" id="ncount"></span></div>
       <div class="filters">
         <input type="search" id="q" placeholder="Search headlines and summaries" aria-label="Search news">
         <select id="seg" aria-label="Segment">
@@ -290,7 +304,7 @@ function renderTimeline(){
   if(list.length>shown)html+=`<button class="more" id="more">Show ${Math.min(40,list.length-shown)} more</button>`;
   $("feed").innerHTML=html; const m=$("more"); if(m)m.onclick=()=>{shown+=40;renderTimeline();};
 }
-function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():mode==="stories"?renderStories():mode==="peers"?renderPeers():mode==="calendar"?renderCalendar():renderTech(); }
+function render(){ mode==="news"?renderFeed():mode==="timeline"?renderTimeline():mode==="models"?renderModels():mode==="stories"?renderStories():mode==="peers"?renderPeers():mode==="calendar"?renderCalendar():mode==="instruments"?renderInstruments():renderTech(); }
 
 /* ---- technology ---- */
 let tech={};
@@ -407,6 +421,46 @@ function renderCalendar(){
 }
 function nextEvent(id){ const today=isoDay(new Date()); const e=cal.find(x=>x.date>=today&&((x.companies&&x.companies.length?x.companies:[x.company]).includes(id))); if(!e)return "";
   const d=new Date(e.date+"T12:00:00"); return `<div class="nextev"><span class="label">Next date</span> &nbsp;<b>${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}</b> · ${esc(e.title)}${e.confirmed===false?' <span class="dim">(expected)</span>':""}</div>`; }
+
+/* ---- instruments by asset class ---- */
+let instruments={}, instSort={k:"listed_companies",dir:-1};
+const ICASH=[["listed_companies","Listed companies"],["etfs","ETFs & ETPs"],["funds","Funds"],["reits","REITs"],["bonds","Bonds"],["structured","Warrants & certs"]];
+const IDER=[["equity","Equity"],["rates","Rates"],["fx","FX"],["commodity","Commodities"],["other","Other"]];
+const icount=(t,k)=>{const v=t?.counts?.[k]?.count; return typeof v==="number"?v:null;};
+const dVol=(g)=>g?Object.values(g).reduce((a,v)=>a+(typeof v==="number"?v:0),0):0;
+function foPills(g){ if(!g)return '<span class="dim">—</span>'; return ["futures","options"].filter(t=>t in g).map(t=>{const v=g[t]; return `<span class="fo${typeof v==="number"?"":" nv"}" title="${t==="futures"?"Futures":"Options"}${typeof v==="number"?": "+fmtVol(v)+" contracts traded in 2025":": traded (volume not reported)"}">${t==="futures"?"F":"O"}</span>`;}).join(""); }
+function renderInstruments(){
+  const q=$("q").value.trim().toLowerCase(), seg=$("seg").value;
+  const arr=Object.values(cos).filter(c=>instruments[c.id]&&(!seg||c.segment===seg)&&(!q||((c.name||"")+" "+(c.short||"")).toLowerCase().includes(q)));
+  $("ncount").textContent=`${arr.length} trading venues`;
+  if(!Object.keys(instruments).length){$("feed").innerHTML='<div class="empty"><b>No instrument counts yet</b>Counts of listed companies, ETFs, funds, bonds and structured products, and the derivative asset classes each venue trades, appear here after the next update.</div>';return;}
+  if(!arr.length){$("feed").innerHTML='<div class="empty"><b>Nothing matches these filters</b>Clear the search or segment filter.</div>';return;}
+  const key=(c,k)=>k==="name"?(c.short||c.name||"").toLowerCase():k.startsWith("d:")?dVol(instruments[c.id].derivatives?.[k.slice(2)])||null:icount(instruments[c.id],k);
+  const rows=sortRows(arr.map(c=>({c,v:key(c,instSort.k)})),"v",instSort.dir);
+  const mx={}; for(const [k] of ICASH)mx[k]=Math.max(1,...arr.map(c=>icount(instruments[c.id],k)||0));
+  const shade=(v,k)=>{ if(!v)return ""; const t=Math.log10(v+1)/Math.log10(mx[k]+1); return ` style="background:color-mix(in srgb,var(--accent) ${Math.round(6+t*34)}%,transparent)"`; };
+  const th=(k,n,cls="")=>`<th class="srt${cls}" data-k="${k}" tabindex="0"${instSort.k===k?` aria-sort="${instSort.dir>0?"ascending":"descending"}"`:""}>${n}${instSort.k===k?(instSort.dir>0?" ▲":" ▼"):""}</th>`;
+  let html=`<div class="mlegend"><span>Cash instruments listed at the end of 2025 (darker = more, relative to the other venues). Derivatives: <span class="fo">F</span> futures and <span class="fo">O</span> options traded in that asset class in 2025 (hover for contracts traded); <span class="fo nv">F</span> traded, volume not reported. Source: WFE 2025 Annual Statistics Guide unless the company panel says otherwise. Definitions differ between exchanges: compare orders of magnitude, not single units.</span></div>
+  <div class="instwrap"><table><thead><tr><th></th><th class="gh" colspan="${ICASH.length}">Listed cash instruments</th><th class="gh sep" colspan="${IDER.length}">Derivatives traded</th></tr>
+  <tr>${th("name","Venue")}${ICASH.map(([k,n])=>th(k,n," num")).join("")}${IDER.map(([k,n],i)=>th("d:"+k,n,i===0?" sep":"")).join("")}</tr></thead><tbody>
+  ${rows.map(({c})=>{const t=instruments[c.id]; return `<tr><td class="co2" data-id="${esc(c.id)}" tabindex="0"><b>${esc(c.short||c.name)}</b></td>${ICASH.map(([k])=>{const v=icount(t,k); return `<td class="c"${shade(v,k)}>${v==null?'<span class="dim">—</span>':v.toLocaleString("en-US")}</td>`;}).join("")}${IDER.map(([k],i)=>`<td class="d${i===0?" sep":""}">${foPills(t.derivatives?.[k])}</td>`).join("")}</tr>`;}).join("")}
+  </tbody></table></div>`;
+  const miss=Object.values(cos).filter(c=>(c.segment==="exchange"||c.segment==="em_exchange")&&!instruments[c.id]);
+  if(miss.length)html+=`<div class="grphead"><h4>No counts yet <span class="count">${miss.length}</span></h4><p>${miss.map(c=>esc(c.short||c.name)).join(" · ")}</p></div>`;
+  $("feed").innerHTML=html;
+  $("feed").querySelectorAll("th.srt").forEach(h=>{const f=()=>{const k=h.dataset.k; instSort=instSort.k===k?{k,dir:-instSort.dir}:{k,dir:k==="name"?1:-1}; renderInstruments();}; h.onclick=f; h.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();f();}};});
+  $("feed").querySelectorAll(".co2").forEach(el=>{const f=()=>select(el.dataset.id);el.onclick=f;el.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();f();}};});
+}
+function instDetail(c){
+  const t=instruments[c.id]; if(!t)return "";
+  const cells=ICASH.filter(([k])=>icount(t,k)!=null).map(([k,n])=>{const x=t.counts[k]; return `<div><span class="label">${esc(n)}</span><div class="v">${x.count.toLocaleString("en-US")}</div>${x.note?`<div class="dim" style="font-size:11px">${esc(x.note)}</div>`:""}<div class="dim" style="font-size:11px">${esc(x.as_of||t.as_of||"")}${x.source?" · "+esc(x.source):""}</div></div>`;});
+  for(const e of t.extra||[])cells.push(`<div><span class="label">${esc(e.label)}</span><div class="v">${typeof e.count==="number"?e.count.toLocaleString("en-US"):"—"}</div><div class="dim" style="font-size:11px">${esc(e.as_of||"")}${e.source?" · "+esc(e.source):""}</div></div>`);
+  const der=IDER.filter(([k])=>t.derivatives?.[k]).map(([k,n])=>`${esc(n)} ${foPills(t.derivatives[k])}`).join(" &nbsp; ");
+  return `<div><div class="label" style="margin-bottom:6px">Instruments traded</div>${cells.length?`<div class="igrid">${cells.join("")}</div>`:""}
+    ${der?`<div class="note" style="margin-top:6px">Derivative asset classes traded: ${der}</div>`:""}
+    ${t.note?`<div class="note">${esc(t.note)}</div>`:""}
+    ${(t.sources||[]).length?`<div class="note">Sources: ${t.sources.map(s=>s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title||"link")}</a>`:esc(s.title||"")).join(" · ")}</div>`:""}</div>`;
+}
 
 /* ---- investment stories ---- */
 let story={};
@@ -668,6 +722,7 @@ function select(id){
       ${techDetail(c)}
       <div class="kv">${kv.map(([k,v])=>`<div><span class="label">${k}</span><span class="v">${v}</span></div>`).join("")}</div>
       ${c.last_updated?`<div class="note">Figures last updated ${esc(c.last_updated)}${m.source?` · ${esc(m.source)}`:""}</div>`:""}
+      ${instDetail(c)}
       ${volDetail(c)}
       ${series[c.id]?annualChart(series[c.id])+quarterTable(series[c.id])+(series[c.id].note?`<div class="note">${esc(series[c.id].note)}</div>`:""):`<div class="note">Financial history appears here once the backfill reaches this company.</div>`}
       ${coTimeline(c.id)}`;
@@ -682,7 +737,7 @@ $("cat").addEventListener("change",()=>{shown=40;render();});
 document.querySelectorAll(".chip[data-m]").forEach(b=>b.onclick=()=>{const m=b.dataset.m; mats.has(m)?mats.delete(m):mats.add(m); b.setAttribute("aria-pressed",mats.has(m)); shown=40; renderFeed();});
 $("wk").onclick=()=>{week=!week;$("wk").setAttribute("aria-pressed",week);shown=40;renderFeed();};
 $("reghead").querySelectorAll("th.srt").forEach(th=>{const f=()=>{const k=th.dataset.k; regSort=!regSort||regSort.k!==k?{k,dir:k==="name"?1:-1}:regSort.dir===(k==="name"?1:-1)?{k,dir:-regSort.dir}:null; renderReg();}; th.onclick=f; th.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
-const TABS={news:"t-news",timeline:"t-tl",models:"t-bm",tech:"t-tech",stories:"t-st",peers:"t-pe",calendar:"t-cal"};
+const TABS={news:"t-news",timeline:"t-tl",models:"t-bm",tech:"t-tech",stories:"t-st",peers:"t-pe",calendar:"t-cal",instruments:"t-in"};
 function writeHash(){ try{ const p=new URLSearchParams(); if(mode!=="news")p.set("tab",mode); if(selCo)p.set("co",selCo); const h=p.toString(); history.replaceState(null,"",h?"#"+h:location.pathname+location.search); }catch(e){} }
 function setMode(m){mode=m;shown=40;for(const [k,id] of Object.entries(TABS))$(id).setAttribute("aria-selected",k===m);$("chips").hidden=m!=="news";$("cat").hidden=m!=="news"&&m!=="timeline";
   $("q").placeholder=m==="news"||m==="timeline"?"Search headlines and summaries":"Search companies";
@@ -704,7 +759,7 @@ const refreshDetail=()=>{if(pendingCo&&cos[pendingCo]){const k=pendingCo;pending
       const byDate=(a,b)=>(b.date||"").localeCompare(a.date||"");
       news=ent(S.news).map(([k,v])=>({id:k,...v})).sort(byDate);
       events=ent(S.events).map(([k,v])=>({id:k,...v})).sort(byDate);
-      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{}; story=S.story||{}; volumes=S.volumes||{}; fx=S.fx||{};
+      series=S.series||{}; tech=S.tech||{}; mix=S.mix||{}; story=S.story||{}; volumes=S.volumes||{}; fx=S.fx||{}; instruments=S.instruments||{};
       cal=ent(S.calendar).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
       const v=S.status||{};
       $("runinfo").innerHTML=`Last update <b>${esc(v.last_run||"—")}</b><br>${esc(v.items_added??0)} new items · ${esc(v.note||"")}`;
@@ -720,6 +775,7 @@ const refreshDetail=()=>{if(pendingCo&&cos[pendingCo]){const k=pendingCo;pending
   const upd=(...m)=>{if(selCo)refreshDetail();else if(m.includes(mode))render();};
   db.collection("series").onSnapshot(s=>{series={};s.docs.forEach(d=>{series[d.id]=d.data();});upd("peers");},()=>{});
   db.collection("volumes").onSnapshot(s=>{volumes={};s.docs.forEach(d=>{volumes[d.id]=d.data();});upd("peers");},()=>{});
+  db.collection("instruments").onSnapshot(s=>{instruments={};s.docs.forEach(d=>{instruments[d.id]=d.data();});upd("instruments");},()=>{});
   db.collection("calendar").orderBy("date","asc").limit(1000).onSnapshot(s=>{cal=s.docs.map(d=>({id:d.id,...d.data()}));upd("calendar");},()=>{});
   db.doc("meta/fx").onSnapshot(s=>{fx=s.exists?s.data():{};renderReg();upd("peers");},()=>{});
   db.collection("tech").onSnapshot(s=>{tech={};s.docs.forEach(d=>{tech[d.id]=d.data();});if(mode==="tech")renderTech();if(selCo)refreshDetail();},()=>{});
